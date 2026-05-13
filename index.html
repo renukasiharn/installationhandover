@@ -1264,15 +1264,31 @@ async function scanCfgName(file){
     name = "Carrier Shop \u2022 Graphic Table \u2022 2.74m \u2022 iPad + iPhone + Watch (x3) \u2022 LS \u2022 AIS \u2022 Thailand";
   } else {
     try {
+      const prompt = `Read the Apple Configuration Name from this image and return it EXACTLY as written, preserving ALL text and formatting.
+
+The configuration name follows this pattern, with each segment separated by the bullet character "•":
+[Fixture Type] • [Material] • [Size] • [Devices] • [Layout Code] • [Demo Specs with accessories] • [Inclusions like "with iPhone X"] • [Exclusions like "no iPad Pro"] • [Partner] • [Country]
+
+Example: "Carrier Shop • Graphic Table • 2.74m • iPad + iPhone + Watch (x3) • LS • iPad A16 with Apple Pencil (USB-C) • with iPhone 15 • no iPad Pro (13-inch) • no iPhone 17e • AIS • Thailand"
+
+Rules:
+- Use the "•" bullet character as separator (not dashes, commas, or pipes)
+- Preserve EVERY segment including "with X" inclusions and "no X" exclusions
+- Do not reorder, summarize, or paraphrase
+- Do not add extra text, quotes, or explanation
+- Return ONLY the configuration name on a single line`;
+
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${gemApiKey}`,
         { method:"POST", headers:{"Content-Type":"application/json"},
           body: JSON.stringify({ contents:[{parts:[
-            { text:"Read the Configuration name from this Apple planogram image. Reply ONLY with the full configuration name, nothing else." },
+            { text: prompt },
             { inline_data:{ mime_type:file.type, data:b64 } }
           ]}]})});
       const j = await res.json();
       name = j.candidates?.[0]?.content?.parts?.[0]?.text?.trim()||"";
-    } catch(e){ name = ""; }
+      // Strip any wrapping quotes or backticks the model might add
+      name = name.replace(/^["'`]+|["'`]+$/g, "").trim();
+    } catch(e){ console.error("scanCfgName error:", e); name = ""; }
   }
   if(name){
     document.getElementById("cfgName").value = name;
@@ -1307,38 +1323,80 @@ async function aiScanOne(file){
     return;
   }
   try {
-    const prompt = `You are analyzing an Apple Store Design Kit / fixture layout image.
-Extract ALL products shown in this image. Each product has:
-- product: full model name (e.g. "iPad Air 11-inch M4", "iPhone 17 Pro Max", "Apple Watch Ultra 3")
-- color: color or size info (e.g. "purple", "cosmic orange", "49mm Black Titanium", "40mm Starlight")
-- code: product code if visible (e.g. "D88", "C306", "GB69", "E15")
-- qty: quantity (default 1)
-- type: "Demo" for touch-and-try devices, "Display" for display-only units (like Watch on stand), "Sign" for digital signs or comparison signs
-- accessoryKb: keyboard name if paired (e.g. "Magic Keyboard", "Magic Keyboard Folio", or "" if none)
-- accessoryPencil: Apple Pencil model if paired (e.g. "Apple Pencil Pro", "Apple Pencil (USB-C)", or "" if none)
+    const prompt = `Analyze this Apple fixture layout / Design Kit image.
 
-Look carefully at ALL text labels, product names, color descriptions, and codes in the image.
-Include items from BOTH the top section (iPad/Watch area) AND bottom section (iPhone area).
-Do NOT skip any product.
+Extract ALL devices shown in the layout (Demo, Display, and Sign items).
 
-Return ONLY a valid JSON array, no explanation, no markdown:
-[{"product":"...","color":"...","code":"...","qty":1,"type":"...","accessoryKb":"...","accessoryPencil":"..."}, ...]`;
+Return ONLY valid JSON.
 
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${gemApiKey}`,
+GENERAL RULES:
+- Extract every product visible in the image. Do not skip any.
+- Extract product name, color, code (inside parentheses like (D88), (C306), (GB69)), qty, type, and accessories.
+- qty defaults to 1 if not specified.
+- Preserve product names exactly as shown (e.g. "iPad Air 11-inch M4", not "iPad Air").
+
+TYPE CLASSIFICATION:
+- "Demo" — touch-and-try devices (iPad, iPhone, etc. that customers interact with)
+- "Display" — display-only units like Apple Watch on stands, AirPods Display. If the product name contains "Display", classify as "Display".
+- "Sign" — digital signs, comparison signs, info cards. If the product name or label contains "Sign", classify as "Sign".
+
+SIGN ITEM RULES:
+- Product name must include the sign type: "Digital Sign", "iPad Sign", "iPhone Sign", "AirPods Sign", "HomePod Sign", "Mac Sign", etc.
+- Put sign description in the color field, for example: "Apple Watch", "A5 Comparison", "A4 Features Hollow", "RC Embedded".
+- Sign items usually have empty code.
+- Sign items have qty default 1.
+
+ACCESSORY RULES (very strict):
+- Use ONLY these exact accessory names — do not invent variations:
+  - "Magic Keyboard"
+  - "Magic Keyboard Folio"
+  - "Apple Pencil Pro"
+  - "Apple Pencil (USB-C)"
+  - "Apple Pencil"
+- Do NOT confuse "Magic Keyboard" with "Magic Keyboard Folio" — they are different products.
+- Do NOT classify "Apple Pencil Pro" as "Apple Pencil" — they are different.
+- Do NOT classify "Apple Pencil (USB-C)" as "Apple Pencil" — they are different.
+- If accessory text says "Magic Keyboard Folio", use exactly "Magic Keyboard Folio".
+
+OUTPUT FORMAT:
+Return a JSON array. Each element is one product with these exact fields:
+  - product: full product name (string)
+  - color: color or size description (string, may be empty)
+  - code: code without parentheses, e.g. "D88" not "(D88)" (string, may be empty)
+  - qty: quantity (number, default 1)
+  - type: "Demo" | "Display" | "Sign"
+  - accessoryKb: one of ["Magic Keyboard", "Magic Keyboard Folio", ""] — the keyboard paired with this device, or empty
+  - accessoryPencil: one of ["Apple Pencil Pro", "Apple Pencil (USB-C)", "Apple Pencil", ""] — the pencil paired with this device, or empty
+
+Example output:
+[
+  {"product":"iPad Air 11-inch M4","color":"purple","code":"D88","qty":1,"type":"Demo","accessoryKb":"Magic Keyboard","accessoryPencil":"Apple Pencil Pro"},
+  {"product":"iPhone 17 Pro Max","color":"cosmic orange","code":"C306","qty":1,"type":"Demo","accessoryKb":"","accessoryPencil":""},
+  {"product":"Digital Sign","color":"Apple Watch","code":"","qty":1,"type":"Sign","accessoryKb":"","accessoryPencil":""},
+  {"product":"AirPods Display","color":"","code":"E15","qty":1,"type":"Display","accessoryKb":"","accessoryPencil":""}
+]
+
+Return ONLY the JSON array, no markdown, no explanation.`;
+
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${gemApiKey}`,
       { method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ contents:[{parts:[
-          { text: prompt },
-          { inline_data:{ mime_type:file.type, data:b64 } }
-        ]}]})});
+        body: JSON.stringify({
+          contents:[{parts:[
+            { text: prompt },
+            { inline_data:{ mime_type:file.type, data:b64 } }
+          ]}],
+          generationConfig: { temperature: 0.1, responseMimeType: "application/json" }
+        })});
     const j = await res.json();
     const txt = j.candidates?.[0]?.content?.parts?.[0]?.text||"[]";
     const cleaned = txt.replace(/```json|```/g,"").trim();
     const parsed = JSON.parse(cleaned);
-    if(Array.isArray(parsed)){
-      parsed.forEach(p => addCfgProductRow(p));
-    } else {
-      addCfgProductRow(parsed);
-    }
+    const items = Array.isArray(parsed) ? parsed : (parsed.demoItems || [parsed]);
+    items.forEach(p => {
+      // Normalize: strip parens from code if AI included them
+      if(p.code) p.code = String(p.code).replace(/[()]/g,"").trim();
+      addCfgProductRow(p);
+    });
   } catch(e){
     console.error("AI scan error:", e);
     addCfgProductRow({product:file.name,color:"",code:"",qty:1,type:"Demo",accessoryKb:"",accessoryPencil:""});
