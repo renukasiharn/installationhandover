@@ -932,100 +932,16 @@ const TOOLKIT_URI = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYE
 
 // ═══ DATA STORE ═══
 const DB = {
-  users: [
-    { id:"u1", name:"System Admin", email:"admin@co.com", password:"Admin1234",
-      phone:"081-000-0001", position:"Administrator", role:"admin",
-      savedSig:null, status:"active", createdAt:"2025-01-01" },
-    { id:"u2", name:"Thanapol Wongsawat", email:"thanapol@co.com", password:"Inst1234",
-      phone:"081-234-5678", position:"Senior Installer", role:"installer",
-      savedSig:null, status:"active", createdAt:"2025-02-15" },
-    { id:"u3", name:"Aphichart Somjai", email:"aphichart@co.com", password:"Inst1234",
-      phone:"081-234-5679", position:"Installer", role:"installer",
-      savedSig:null, status:"active", createdAt:"2025-03-10" },
-    { id:"u4", name:"Patchari Boonma", email:"patchari@co.com", password:"Inst1234",
-      phone:"081-234-5680", position:"Installer", role:"installer",
-      savedSig:null, status:"active", createdAt:"2025-04-01" },
-    { id:"u5", name:"Renuka Sriharn", email:"renuka.ar19@gmail.com", password:"User1234",
-      phone:"062-323-1211", position:"Manager", role:"user",
-      savedSig:null, status:"active", createdAt:"2026-05-01" },
-  ],
-  configs: [
-    {
-      id:"cfg1",
-      name:"Carrier Shop \u2022 Graphic Table \u2022 2.74m \u2022 iPad + iPhone + Watch (x3) \u2022 LS \u2022 iPad A16 with Apple Pencil (USB-C) \u2022 with iPhone 15 \u2022 no iPad Pro (13-inch) \u2022 no iPhone 17e \u2022 AIS \u2022 Thailand",
-      fixtureType:"Carrier Shop \u2022 Graphic Table \u2022 2.74m",
-      programId:"carrier-shop", programName:"Carrier Shop",
-      vdoLabel:"VDO No.05", vdoUrl:"https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-      badgeClass:"prog-cs", icon:"\ud83c\udfea",
-      products:[
-        { product:"Digital Sign Apple Watch", color:"", code:"", qty:1, type:"Sign", accessoryKb:"", accessoryPencil:"" },
-        { product:"Apple Watch SE 3", color:"40mm Starlight", code:"GB72", qty:1, type:"Display", accessoryKb:"", accessoryPencil:"" },
-        { product:"Apple Watch Series 11", color:"46mm Space G", code:"GB75", qty:1, type:"Display", accessoryKb:"", accessoryPencil:"" },
-        { product:"Apple Watch Ultra 3", color:"49mm Black Ti", code:"GB69", qty:1, type:"Display", accessoryKb:"", accessoryPencil:"" },
-        { product:"iPad mini A17 Pro", color:"purple", code:"D68", qty:1, type:"Demo", accessoryKb:"", accessoryPencil:"Apple Pencil Pro" },
-        { product:"iPad A16", color:"blue", code:"D80", qty:1, type:"Demo", accessoryKb:"Magic Keyboard Folio", accessoryPencil:"Apple Pencil (USB-C)" },
-        { product:"iPad Air 11-inch M4", color:"purple", code:"D88", qty:1, type:"Demo", accessoryKb:"Magic Keyboard (white)", accessoryPencil:"Apple Pencil Pro" },
-        { product:"iPad Pro 11-inch M5", color:"silver", code:"D84", qty:1, type:"Demo", accessoryKb:"Magic Keyboard (white)", accessoryPencil:"Apple Pencil Pro" },
-        { product:"iPhone 17 Pro Max", color:"cosmic orange", code:"C306", qty:1, type:"Demo", accessoryKb:"", accessoryPencil:"" },
-        { product:"iPhone 17 Pro", color:"deep blue", code:"C302", qty:1, type:"Demo", accessoryKb:"", accessoryPencil:"" },
-        { product:"iPhone Air", color:"sky blue", code:"C307", qty:1, type:"Demo", accessoryKb:"", accessoryPencil:"" },
-        { product:"iPhone Air", color:"space black", code:"C308", qty:1, type:"Demo", accessoryKb:"", accessoryPencil:"" },
-        { product:"iPhone 17", color:"lavender", code:"C311", qty:1, type:"Demo", accessoryKb:"", accessoryPencil:"" },
-        { product:"iPhone 16", color:"ultramarine", code:"C204", qty:1, type:"Demo", accessoryKb:"", accessoryPencil:"" },
-        { product:"iPhone 15", color:"blue", code:"C106", qty:1, type:"Demo", accessoryKb:"", accessoryPencil:"" },
-        { product:"AirPods Display 6", color:"", code:"E15", qty:1, type:"Display", accessoryKb:"", accessoryPencil:"" },
-        { product:"AirPods Sign A5", color:"RC Embedded", code:"", qty:1, type:"Sign", accessoryKb:"", accessoryPencil:"" },
-      ]
-    }
-  ],
-  jobs: [
-    {
-      id:"JOB-20260501-001", userId:"u5", jobType:"installation",
-      storeId:"1458804", partner:"AIS",
-      store:"ASP @ TWZ CORPORATION (BIG C BANG PHLI)",
-      address:"Big C Bang Phli, Samut Prakan",
-      installDate:"2026-05-11",
-      configId:"cfg1", demoOverrides:[],
-      installerIds:["u2","u3"],
-      videoUrl:"https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-      adminNote:"Please check all demo units carefully before signing.",
-      status:"pending", submitAt:null,
-      checklist:null, note:"", receiverSig:null,
-    }
-  ],
+  users: [],
+  configs: [],
+  jobs: [],
+  stores: [],
+  programs: [],
 };
 
-let STORES = [
-  { id:"1458804", name:"ASP @ TWZ CORPORATION (BIG C BANG PHLI)", partner:"AIS",  address:"Big C Bang Phli, Samut Prakan" },
-  { id:"1234567", name:"iStudio by SPVi @ CentralWorld",           partner:"DTAC", address:"4F CentralWorld, Bangkok" },
-  { id:"2345678", name:"Apple Premium Reseller @ Siam Paragon",    partner:"TRUE", address:"GF Siam Paragon, Bangkok" },
-  { id:"3456789", name:"iCON @ MBK Center",                        partner:"AIS",  address:"4F MBK Center, Bangkok" },
-  { id:"4567890", name:"ASP @ LOTUS BANG BUA THONG",               partner:"AIS",  address:"Lotus Bang Bua Thong, Nonthaburi" },
-  { id:"5678901", name:"Studio 7 @ The Mall Bangkapi",             partner:"TRUE", address:"The Mall Bangkapi, Bangkok" },
-  { id:"6789012", name:"iCON @ CentralPlaza Rama 9",               partner:"DTAC", address:"CentralPlaza Rama 9, Bangkok" },
-  { id:"7890123", name:"ASP @ LOTUS CHAENG WATTHANA",              partner:"AIS",  address:"Lotus Chaeng Watthana, Bangkok" },
-  { id:"8901234", name:"iStudio @ Future Park Rangsit",            partner:"DTAC", address:"Future Park Rangsit, Pathum Thani" },
-  { id:"9012345", name:"Apple Premium @ Terminal 21 Asok",         partner:"TRUE", address:"Terminal 21 Asok, Bangkok" },
-  { id:"1122334", name:"ASP @ LOTUS PATTAYA",                      partner:"AIS",  address:"Lotus Pattaya, Chonburi" },
-  { id:"2233445", name:"iCON @ EmQuartier",                        partner:"DTAC", address:"EmQuartier, Bangkok" },
-];
+let STORES = [];
 
-let PROGRAM_VDO_MAP = [
-  { id:"apple-shop-core",name:"Apple Shop Core 1", vdoLabel:"Link 1", vdoUrl:"",
-    keywords:["apple shop core"], badgeClass:"prog-asc", icon:"\ud83d\udda5\ufe0f" },
-  { id:"apple-shop-core-2",name:"Apple Shop Core 2", vdoLabel:"Link 2", vdoUrl:"",
-    keywords:["apple shop core 2"], badgeClass:"prog-asc", icon:"\ud83d\udda5\ufe0f" },
-  { id:"carrier-shop-v2",name:"Carrier Shop V2", vdoLabel:"Link 3", vdoUrl:"",
-    keywords:["carrier shop v2"], badgeClass:"prog-csv2", icon:"\ud83d\udce1" },
-  { id:"carrier-shop",   name:"Carrier Shop",    vdoLabel:"Link 4", vdoUrl:"https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-    keywords:["carrier shop"], badgeClass:"prog-cs", icon:"\ud83c\udfea" },
-  { id:"apple-shop-20",  name:"Apple Shop 2.0",  vdoLabel:"Link 5", vdoUrl:"",
-    keywords:["apple shop 2.0"], badgeClass:"prog-as20", icon:"\ud83c\udf4e" },
-  { id:"apple-shop-30",  name:"Apple Shop 3.0",  vdoLabel:"Link 6", vdoUrl:"",
-    keywords:["apple shop 3.0"], badgeClass:"prog-as30", icon:"\ud83c\udf4f" },
-  { id:"app",            name:"APP",             vdoLabel:"Link 7", vdoUrl:"",
-    keywords:["app"], badgeClass:"prog-other", icon:"\ud83d\udcf1" },
-];
+let PROGRAM_VDO_MAP = [];
 
 const CHECKLIST = [
   { en:"All fixtures are correctly located as per design kit",
@@ -1043,6 +959,58 @@ const CHECKLIST = [
   { en:"Have you received the alarm equipment tool kits",
     th:"ผู้รับมอบงานได้รับอุปกรณ์ระบบกันขโมยและ Tool Kits ครบถ้วนเรียบร้อยแล้ว" },
 ];
+
+
+// ═══════════════════════════════════════════════════════════════════
+// GAS BACKEND CLIENT
+// ═══════════════════════════════════════════════════════════════════
+// IMPORTANT: paste your deployed Web App URL here (ends with /exec)
+const GAS_URL = "https://script.google.com/macros/s/AKfycbwF4LpovVWk-fa4RMs4OhYpx1HUYz_IoEE_2Loh6OHI9prV_dDN-fuJyi9HfJV3ITw/exec";
+
+let AUTH_TOKEN = null;
+
+async function api(action, params = {}) {
+  const body = Object.assign({ action, token: AUTH_TOKEN }, params);
+  try {
+    const res = await fetch(GAS_URL, {
+      method: "POST",
+      // GAS endpoints don't accept preflighted requests, so we send text/plain.
+      // Apps Script will still parse e.postData.contents as JSON.
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(body),
+      redirect: "follow",
+    });
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error || "Request failed");
+    return json;
+  } catch (err) {
+    console.error("[api]", action, err);
+    toast(err.message || "Network error", "err");
+    throw err;
+  }
+}
+
+// Bootstrap: load all entities into the in-memory DB
+async function loadAllData() {
+  const r = await api("bootstrap");
+  DB.users    = r.data.users    || [];
+  DB.stores   = r.data.stores   || [];
+  DB.programs = r.data.programs || [];
+  DB.configs  = r.data.configs  || [];
+  DB.jobs     = r.data.jobs     || [];
+  // Also feed the legacy module-scoped arrays
+  STORES = DB.stores;
+  PROGRAM_VDO_MAP = DB.programs;
+}
+
+// Auto-refresh a specific entity from the server after a write
+async function refreshEntity(entity) {
+  const r = await api("list", { entity });
+  const key = entity.toLowerCase();
+  DB[key] = r.data;
+  if (key === "stores")   STORES = r.data;
+  if (key === "programs") PROGRAM_VDO_MAP = r.data;
+}
 
 // ═══ STATE ═══
 let CU = null;
@@ -1062,30 +1030,44 @@ let clAnswers = {};
 let userNote = "";
 
 // ═══ AUTH ═══
-function doLogin(){
+async function doLogin(){
   const email = document.getElementById("lEmail").value.trim();
   const pass  = document.getElementById("lPass").value;
   if(!email||!pass){ showLoginErr("Please enter email and password"); return; }
   const btn = document.getElementById("lBtn");
   const txt = document.getElementById("lBtnTxt");
   btn.disabled = true; txt.innerHTML = '<div class="spin"></div> Signing in...';
-  setTimeout(()=>{
-    const u = DB.users.find(u=>u.email===email && u.password===pass);
-    if(!u){ showLoginErr("Invalid email or password"); btn.disabled=false; txt.textContent="Sign In"; return; }
-    if(u.status==="inactive"){ showLoginErr("Account is inactive. Contact admin."); btn.disabled=false; txt.textContent="Sign In"; return; }
-    CU = u;
+  try {
+    const res = await fetch(GAS_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "login", email, password: pass }),
+    });
+    const json = await res.json();
+    if (!json.ok) {
+      showLoginErr(json.error || "Invalid email or password");
+      btn.disabled = false; txt.textContent = "Sign In";
+      return;
+    }
+    AUTH_TOKEN = json.token;
+    CU = json.user;
+    // Pull all data the user is allowed to see
+    await loadAllData();
     document.getElementById("loginErr").style.display="none";
     document.getElementById("sLogin").classList.remove("on");
     document.getElementById("sShell").classList.add("on");
-    document.getElementById("tAv").textContent = u.name.charAt(0).toUpperCase();
-    document.getElementById("tName").textContent = u.name;
+    document.getElementById("tAv").textContent = CU.name.charAt(0).toUpperCase();
+    document.getElementById("tName").textContent = CU.name;
     const b = document.getElementById("tBadge");
-    b.textContent = u.role.toUpperCase();
-    b.className = "t-badge " + u.role;
-    buildSidebar(u.role);
-    if(u.role==="user"){ showPage("pMyJobs"); }
+    b.textContent = CU.role.toUpperCase();
+    b.className = "t-badge " + CU.role;
+    buildSidebar(CU.role);
+    if(CU.role==="user"){ showPage("pMyJobs"); }
     else { showPage("pDash"); }
-  }, 500);
+  } catch (err) {
+    showLoginErr("Connection error. Check GAS_URL and try again.");
+    btn.disabled = false; txt.textContent = "Sign In";
+  }
 }
 function showLoginErr(msg){ const e=document.getElementById("loginErr"); e.textContent=msg; e.style.display="block"; }
 function doLogout(){ if(confirm("Sign out?")) location.reload(); }
@@ -1375,41 +1357,36 @@ function getCfgProductRows(){
   return rows;
 }
 
-function saveConfig(){
+async function saveConfig(){
   const name = document.getElementById("cfgName").value.trim();
-  if(!name){ toast("Please enter a Configuration name","err"); return; }
+  const vdoUrl = document.getElementById("cfgVdoUrl").value.trim();
+  if(!name){ toast("Configuration name is required","err"); return; }
   const products = getCfgProductRows();
-  if(!products.length){ toast("Please add at least one product","err"); return; }
+  if(!products.length){ toast("Add at least one product","err"); return; }
   const prog = detectProgram(name);
-  const vdoUrl = document.getElementById("cfgVdoUrl")?.value?.trim() || prog?.vdoUrl || "";
-
-  if(editingCfgId){
-    const cfg = DB.configs.find(c=>c.id===editingCfgId);
-    if(cfg){
-      cfg.name = name;
-      cfg.fixtureType = extractFixtureType(name);
-      cfg.programId = prog?.id||"";
-      cfg.programName = prog?.name||"";
-      cfg.vdoLabel = prog?.vdoLabel||"";
-      cfg.vdoUrl = vdoUrl;
-      cfg.badgeClass = prog?.badgeClass||"prog-other";
-      cfg.icon = prog?.icon||"📦";
-      cfg.products = products;
-    }
-    toast("Configuration updated ✓","ok");
-  } else {
-    DB.configs.push({
-      id:"cfg_"+Date.now(), name,
-      fixtureType:extractFixtureType(name),
-      programId:prog?.id||"", programName:prog?.name||"",
-      vdoLabel:prog?.vdoLabel||"", vdoUrl,
-      badgeClass:prog?.badgeClass||"prog-other", icon:prog?.icon||"📦",
+  const fixtureType = extractFixtureType(name);
+  try {
+    const data = {
+      name, fixtureType,
+      programId: prog?.id || "other",
+      programName: prog?.name || "Other",
+      vdoLabel: prog?.vdoLabel || "Link",
+      vdoUrl: vdoUrl || prog?.vdoUrl || "",
+      badgeClass: prog?.badgeClass || "prog-other",
+      icon: prog?.icon || "📱",
       products,
-    });
-    toast(`Saved: "${name.slice(0,40)}..."`, "ok");
-  }
-  clearCfgForm();
-  showPage("pPresets");
+    };
+    if (editingCfgId) {
+      await api("update", { entity: "configs", id: editingCfgId, data });
+      toast("Configuration updated ✓","ok");
+    } else {
+      await api("create", { entity: "configs", data });
+      toast("Configuration created ✓","ok");
+    }
+    await refreshEntity("configs");
+    clearCfgForm();
+    renderPresets();
+  } catch(e){}
 }
 
 function clearCfgForm(){
@@ -1504,11 +1481,14 @@ function openEditPreset(cfgId){
   cfg.products.forEach(p=>addCfgProductRow(p));
 }
 
-function deleteConfig(id){
+async function deleteConfig(id){
   if(!confirm("Delete this configuration?")) return;
-  DB.configs.splice(DB.configs.findIndex(c=>c.id===id),1);
-  renderPresets(); refreshDash();
-  toast("Deleted","inf");
+  try {
+    await api("delete", { entity: "configs", id });
+    await refreshEntity("configs");
+    renderPresets();
+    toast("Configuration deleted","ok");
+  } catch(e){}
 }
 
 
@@ -1597,43 +1577,40 @@ function copyUserPw(){
   navigator.clipboard?.writeText(v).then(()=>toast("Copied ✓","ok"));
 }
 
-function saveUser(){
+async function saveUser(){
   const name = document.getElementById("mu_name").value.trim();
   const email = document.getElementById("mu_email").value.trim();
-  const password = document.getElementById("mu_password").value.trim();
-  const role = document.getElementById("mu_role").value;
-  const position = document.getElementById("mu_position").value.trim();
   const phone = document.getElementById("mu_phone").value.trim();
-
-  if(!name){ toast("Name required","err"); return; }
-  if(!email){ toast("Email required","err"); return; }
-  if(!password){ toast("Password required","err"); return; }
-  if(!/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{6,}/.test(password)){
-    toast("Password must include uppercase, lowercase and numbers","err"); return;
-  }
-  const dup = DB.users.find(u=>u.email===email && u.id!==editingUserId);
-  if(dup){ toast("Email already exists","err"); return; }
-
-  if(editingUserId){
-    const u = DB.users.find(x=>x.id===editingUserId);
-    Object.assign(u,{name,email,password,role,position,phone});
-    toast("User updated ✓","ok");
-  } else {
-    DB.users.push({
-      id:"u"+Date.now(), name, email, password, role, position, phone,
-      savedSig:null, status:"active", createdAt:new Date().toISOString().slice(0,10)
-    });
-    toast(`User "${name}" created ✓`,"ok");
-  }
-  closeModal("mUser");
-  renderUsers(); refreshDash();
+  const position = document.getElementById("mu_position").value.trim();
+  const role = document.getElementById("mu_role").value;
+  const password = document.getElementById("mu_password").value;
+  if(!name||!email){ toast("Name and email are required","err"); return; }
+  if(!editingUserId && !password){ toast("Password required for new user","err"); return; }
+  if(checkEmailDup(email)){ toast("Email already exists","err"); return; }
+  try {
+    const data = { name, email, phone, position, role };
+    if (password) data.password = password;
+    if (editingUserId) {
+      await api("update", { entity: "users", id: editingUserId, data });
+      toast("User updated ✓","ok");
+    } else {
+      data.status = "active";
+      await api("create", { entity: "users", data });
+      toast("User created ✓","ok");
+    }
+    await refreshEntity("users");
+    closeModal("mUser");
+    renderUsers(); refreshDash();
+  } catch (e) { /* toast shown by api() */ }
 }
 
-function toggleUserStatus(uid){
-  const u = DB.users.find(x=>x.id===uid); if(!u) return;
-  u.status = u.status==="active"?"inactive":"active";
-  renderUsers();
-  toast(`${u.name}: ${u.status==="active"?"Activated":"Deactivated"}`,"inf");
+async function toggleUserStatus(uid){
+  try {
+    await api("toggleStatus", { id: uid });
+    await refreshEntity("users");
+    renderUsers();
+    toast("Status updated","ok");
+  } catch(e){}
 }
 
 // ═══ JOBS LIST ═══
@@ -1872,7 +1849,7 @@ function updateDemoOverride(idx, field, val){
   demoOverridesTemp[idx][field] = val;
 }
 
-function saveJob(){
+async function saveJob(){
   const userId = document.getElementById("mj_userId").value;
   const installDate = document.getElementById("mj_date").value;
   const jobType = document.getElementById("mj_jobType").value;
@@ -1886,7 +1863,6 @@ function saveJob(){
   if(!configId){ toast("Please select Configuration","err"); return; }
   if(jobType==="installation" && !pickedInstallerIds.length){ toast("Please add Installer(s)","err"); return; }
 
-  // Check duplicate store (active pending job)
   if(!pendingDupConfirm){
     const dup = DB.jobs.find(j=>j.storeId===selectedStore.id && j.status==="pending" && j.id!==editingJobId);
     if(dup){
@@ -1901,10 +1877,6 @@ function saveJob(){
   }
   pendingDupConfirm = false;
 
-  // Cancel any duplicate
-  const dup2 = DB.jobs.find(j=>j.storeId===selectedStore.id && j.status==="pending" && j.id!==editingJobId);
-  if(dup2){ dup2.status = "cancelled"; toast(`Old job ${dup2.id} cancelled`,"warn"); }
-
   const cfg = DB.configs.find(c=>c.id===configId);
   const demoOverrides = cfg?.products.map((p,i)=>({
     ...p,
@@ -1913,29 +1885,35 @@ function saveJob(){
     note:       demoOverridesTemp[i]?.note       || "",
   })) || [];
 
-  if(editingJobId){
-    const j = DB.jobs.find(x=>x.id===editingJobId);
-    Object.assign(j,{userId,jobType,storeId:selectedStore.id,partner:selectedStore.partner,
-      store:selectedStore.name,address:selectedStore.address,installDate,configId,
-      demoOverrides,installerIds:[...pickedInstallerIds],videoUrl,adminNote});
-    toast("Job updated ✓","ok");
-  } else {
-    const now = new Date();
-    const jobId = "JOB-" + now.getFullYear() + String(now.getMonth()+1).padStart(2,"0") + String(now.getDate()).padStart(2,"0")
-      + "-" + String(DB.jobs.length+1).padStart(3,"0");
-    DB.jobs.push({
-      id:jobId, userId, jobType,
-      storeId:selectedStore.id, partner:selectedStore.partner,
-      store:selectedStore.name, address:selectedStore.address,
+  try {
+    // Cancel any duplicate (still-pending) job for the same store
+    const dup2 = DB.jobs.find(j=>j.storeId===selectedStore.id && j.status==="pending" && j.id!==editingJobId);
+    if(dup2){
+      await api("update", { entity: "jobs", id: dup2.id, data: { status: "cancelled" } });
+      toast(`Old job ${dup2.id} cancelled`,"warn");
+    }
+
+    const data = {
+      userId, jobType,
+      storeId: selectedStore.id, partner: selectedStore.partner,
+      store: selectedStore.name, address: selectedStore.address,
       installDate, configId, demoOverrides,
-      installerIds:[...pickedInstallerIds], videoUrl, adminNote,
-      status:"pending", submitAt:null,
-      checklist:null, note:"", receiverSig:null,
-    });
-    toast(`Job ${jobId} created ✓`,"ok");
-  }
-  closeModal("mJob");
-  renderJobs(); refreshDash();
+      installerIds: [...pickedInstallerIds], videoUrl, adminNote,
+    };
+
+    if (editingJobId) {
+      await api("update", { entity: "jobs", id: editingJobId, data });
+      toast("Job updated ✓","ok");
+    } else {
+      data.status = "pending"; data.submitAt = null;
+      data.checklist = null; data.note = ""; data.receiverSig = null;
+      const r = await api("create", { entity: "jobs", data });
+      toast(`Job ${r.data.id} created ✓`,"ok");
+    }
+    await refreshEntity("jobs");
+    closeModal("mJob");
+    renderJobs(); refreshDash();
+  } catch(e){}
 }
 
 function confirmDupJob(){ closeModal("mDupStore"); pendingDupConfirm = true; saveJob(); }
@@ -1986,22 +1964,29 @@ function initProfSigPad(){
   profSigPad = new SignaturePad(c, {penColor:"#0a7268", minWidth:1.5, maxWidth:3});
 }
 
-function saveProfile(){
-  CU.name = document.getElementById("prof_name").value.trim() || CU.name;
-  CU.position = document.getElementById("prof_position").value.trim();
-  CU.email = document.getElementById("prof_email").value.trim() || CU.email;
-  CU.phone = document.getElementById("prof_phone").value.trim();
-  // Update topbar
-  document.getElementById("tName").textContent = CU.name;
-  document.getElementById("tAv").textContent = CU.name.charAt(0).toUpperCase();
-  toast("Profile saved ✓","ok");
+async function saveProfile(){
+  const name = document.getElementById("pf_name").value.trim();
+  const phone = document.getElementById("pf_phone").value.trim();
+  const position = document.getElementById("pf_position").value.trim();
+  if(!name){ toast("Name is required","err"); return; }
+  try {
+    await api("update", { entity: "users", id: CU.id, data: { name, phone, position } });
+    CU.name = name; CU.phone = phone; CU.position = position;
+    document.getElementById("tName").textContent = name;
+    document.getElementById("tAv").textContent = name.charAt(0).toUpperCase();
+    toast("Profile saved ✓","ok");
+  } catch(e){}
 }
 
-function saveProfileSig(){
+async function saveProfileSig(){
   if(!profSigPad || profSigPad.isEmpty()){ toast("Please sign first","err"); return; }
-  CU.savedSig = profSigPad.toDataURL();
-  renderProfSig();
-  toast("Signature saved ✓","ok");
+  const dataUrl = profSigPad.toDataURL();
+  try {
+    await api("update", { entity: "users", id: CU.id, data: { savedSig: dataUrl } });
+    CU.savedSig = dataUrl;
+    toast("Signature saved ✓","ok");
+    renderProfSig();
+  } catch(e){}
 }
 
 function profClearSig(){
@@ -2391,17 +2376,54 @@ async function finalSubmit(){
   if(!capturedReceiverSig){ toast("Receiver signature is required","err"); showWStep(4); return; }
   const btn = document.getElementById("btnFinalSub");
   btn.disabled = true; btn.innerHTML = '<div class="spin"></div> Submitting...';
-  await sleep(1500);
 
   const job = DB.jobs.find(j=>j.id===currentJobId);
-  const now = new Date();
+  const submitAt = new Date().toISOString().slice(0,16).replace("T"," ");
+  const receiverSig = capturedReceiverSig || (recvPad && !recvPad.isEmpty() ? recvPad.toDataURL() : null);
+
+  // Stamp local copy so PDF builder picks up the freshest values
   job.status = "done";
-  job.submitAt = now.toISOString().slice(0,16).replace("T"," ");
+  job.submitAt = submitAt;
   job.checklist = {...clAnswers};
   job.note = userNote;
-  job.receiverSig = capturedReceiverSig || (recvPad && !recvPad.isEmpty() ? recvPad.toDataURL() : null);
+  job.receiverSig = receiverSig;
 
-  refreshDash();
+  // Generate PDF from the existing buildPdfHtml() → html2pdf → base64
+  let pdfBase64 = "";
+  try {
+    const html = buildPdfHtml(job);
+    const container = document.createElement("div");
+    container.innerHTML = html;
+    document.body.appendChild(container);
+    const blob = await html2pdf().from(container).set({
+      margin: 10,
+      filename: `Handover_${job.id}.pdf`,
+      image: { type: "jpeg", quality: 0.95 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+    }).outputPdf("blob");
+    document.body.removeChild(container);
+    pdfBase64 = await blobToBase64(blob);
+  } catch (err) {
+    console.error("PDF generation failed:", err);
+    toast("PDF generation failed — submitting without attachment", "warn");
+  }
+
+  // POST to backend: save PDF to Drive, update Sheet, email recipient
+  try {
+    await api("submitJob", {
+      jobId: job.id,
+      checklist: clAnswers,
+      note: userNote,
+      receiverSig,
+      pdfBase64,
+    });
+    await refreshEntity("jobs");
+    refreshDash();
+  } catch (e) {
+    btn.disabled = false; btn.innerHTML = "Submit Handover";
+    return;
+  }
 
   document.getElementById("w5Card").style.display = "none";
   document.getElementById("w5nav").style.display = "none";
@@ -2426,6 +2448,19 @@ async function finalSubmit(){
         </div>
       </div>
     </div>`;
+}
+
+function blobToBase64(blob){
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onloadend = () => {
+      const s = r.result;
+      const i = s.indexOf("base64,");
+      resolve(i >= 0 ? s.slice(i + 7) : s);
+    };
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
 }
 
 
@@ -2498,53 +2533,36 @@ function checkStoreIdDup(id){
   }
 }
 
-function saveStore(){
+async function saveStore(){
   const id = document.getElementById("ms_id").value.trim();
   const name = document.getElementById("ms_name").value.trim();
   const partner = document.getElementById("ms_partner").value;
   const address = document.getElementById("ms_address").value.trim();
-
-  if(!id){ toast("Store ID required","err"); return; }
-  if(!name){ toast("Store name required","err"); return; }
-  if(!partner){ toast("Partner required","err"); return; }
-
-  if(editingStoreId){
-    const s = STORES.find(x=>x.id===editingStoreId);
-    if(s){
-      s.name = name;
-      s.partner = partner;
-      s.address = address;
+  if(!id||!name||!partner||!address){ toast("All fields required","err"); return; }
+  if(!editingStoreId && checkStoreIdDup(id)){ toast("Store ID already exists","err"); return; }
+  try {
+    const data = { id, name, partner, address };
+    if (editingStoreId) {
+      await api("update", { entity: "stores", id: editingStoreId, data });
+      toast("Store updated ✓","ok");
+    } else {
+      await api("create", { entity: "stores", data });
+      toast("Store created ✓","ok");
     }
-    // Update existing jobs that reference this store
-    DB.jobs.forEach(job=>{
-      if(job.storeId===editingStoreId){
-        job.store = name;
-        job.partner = partner;
-        job.address = address;
-      }
-    });
-    toast(`Store "${id}" updated ✓`,"ok");
-  } else {
-    if(STORES.find(s=>s.id===id)){ toast("Store ID already exists","err"); return; }
-    STORES.push({ id, name, partner, address });
-    toast(`Store "${id}" created ✓`,"ok");
-  }
-  closeModal("mStore");
-  renderStores();
+    await refreshEntity("stores");
+    closeModal("mStore");
+    renderStores();
+  } catch (e) {}
 }
 
-function deleteStore(sid){
-  const s = STORES.find(x=>x.id===sid); if(!s) return;
-  // Check if any job uses it
-  const usedBy = DB.jobs.filter(j=>j.storeId===sid);
-  if(usedBy.length){
-    if(!confirm(`This store is used by ${usedBy.length} job(s). Delete anyway? (Existing jobs will keep their data)`)) return;
-  } else {
-    if(!confirm(`Delete store "${s.name}"?`)) return;
-  }
-  STORES.splice(STORES.findIndex(x=>x.id===sid),1);
-  renderStores();
-  toast("Deleted","inf");
+async function deleteStore(sid){
+  if(!confirm("Delete this store?")) return;
+  try {
+    await api("delete", { entity: "stores", id: sid });
+    await refreshEntity("stores");
+    renderStores();
+    toast("Store deleted","ok");
+  } catch(e){}
 }
 
 // ═══ PROGRAMS MANAGEMENT ═══
@@ -2604,50 +2622,35 @@ function previewProgramVdo(){
   document.getElementById("mp_iframe").src = `https://www.youtube.com/embed/${m[1]}?rel=0`;
 }
 
-function saveProgram(){
+async function saveProgram(){
   const name = document.getElementById("mp_name").value.trim();
-  const label = document.getElementById("mp_label").value.trim();
-  const url = document.getElementById("mp_url").value.trim();
-  const kwStr = document.getElementById("mp_keywords").value.trim();
-  const icon = document.getElementById("mp_icon").value.trim() || "📦";
-
-  if(!name){ toast("Program name required","err"); return; }
-  if(!url){ toast("VDO URL required","err"); return; }
-
-  const keywords = kwStr ? kwStr.split(",").map(k=>k.trim().toLowerCase()).filter(Boolean) : [name.toLowerCase()];
-
-  if(editingProgramId){
-    const p = PROGRAM_VDO_MAP.find(x=>x.id===editingProgramId);
-    if(p){
-      p.name = name;
-      p.vdoLabel = label;
-      p.vdoUrl = url;
-      p.keywords = keywords;
-      p.icon = icon;
+  const vdoLabel = document.getElementById("mp_vdoLabel").value.trim();
+  const vdoUrl = document.getElementById("mp_vdoUrl").value.trim();
+  const keywords = document.getElementById("mp_keywords").value.split(",").map(s=>s.trim()).filter(Boolean);
+  if(!name||!keywords.length){ toast("Name and keywords are required","err"); return; }
+  try {
+    const data = { name, vdoLabel, vdoUrl, keywords, badgeClass: "prog-other", icon: "📱" };
+    if (editingProgramId) {
+      await api("update", { entity: "programs", id: editingProgramId, data });
+      toast("Program updated ✓","ok");
+    } else {
+      await api("create", { entity: "programs", data });
+      toast("Program created ✓","ok");
     }
-    toast(`Program "${name}" updated ✓`,"ok");
-  } else {
-    const id = name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"") || "prog-"+Date.now();
-    PROGRAM_VDO_MAP.push({
-      id, name, vdoLabel:label, vdoUrl, keywords, icon,
-      badgeClass:"prog-other",
-    });
-    toast(`Program "${name}" created ✓`,"ok");
-  }
-
-  // Re-sync existing configs that match this program
-  syncConfigsToPrograms();
-
-  closeModal("mProgram");
-  renderPrograms();
+    await refreshEntity("programs");
+    closeModal("mProgram");
+    renderPrograms();
+  } catch(e){}
 }
 
-function deleteProgram(pid){
-  const p = PROGRAM_VDO_MAP.find(x=>x.id===pid); if(!p) return;
-  if(!confirm(`Delete program "${p.name}"? Configurations using this program will keep their data but won't auto-match anymore.`)) return;
-  PROGRAM_VDO_MAP.splice(PROGRAM_VDO_MAP.findIndex(x=>x.id===pid),1);
-  renderPrograms();
-  toast("Deleted","inf");
+async function deleteProgram(pid){
+  if(!confirm("Delete this program?")) return;
+  try {
+    await api("delete", { entity: "programs", id: pid });
+    await refreshEntity("programs");
+    renderPrograms();
+    toast("Program deleted","ok");
+  } catch(e){}
 }
 
 // When a program's VDO URL changes, update all configs/jobs that use it
