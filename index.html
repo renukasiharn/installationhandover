@@ -1264,30 +1264,54 @@ async function scanCfgName(file){
     name = "Carrier Shop \u2022 Graphic Table \u2022 2.74m \u2022 iPad + iPhone + Watch (x3) \u2022 LS \u2022 AIS \u2022 Thailand";
   } else {
     try {
-      const prompt = `Read the Apple Configuration Name from this image and return it EXACTLY as written, preserving ALL text and formatting.
+      const prompt = `Read the Apple Store Configuration Name from this image.
 
-The configuration name follows this pattern, with each segment separated by the bullet character "•":
-[Fixture Type] • [Material] • [Size] • [Devices] • [Layout Code] • [Demo Specs with accessories] • [Inclusions like "with iPhone X"] • [Exclusions like "no iPad Pro"] • [Partner] • [Country]
+The image may be:
+- A planogram / fixture layout with title text
+- A slide / document header with the configuration name as text
+- Plain text on a white background
 
-Example: "Carrier Shop • Graphic Table • 2.74m • iPad + iPhone + Watch (x3) • LS • iPad A16 with Apple Pencil (USB-C) • with iPhone 15 • no iPad Pro (13-inch) • no iPhone 17e • AIS • Thailand"
+Find the line(s) that look like an Apple Store configuration name. These are descriptive titles with segments separated by bullets ("•"), commas, or similar dividers.
+
+Configuration names follow these patterns (examples — DO NOT copy these, just match the style):
+- "Apple Shop • Custom • SEA • Power Mall The Mall Ngamwongwan • Nonthaburi, Thailand • Fixture ID 800513327"
+- "Apple Shop Core • Inline Back to Back • 5.00m • L • Desktops + Notebooks + iPad + iPhone + Watch + HomePod mini • with MacBook Air M2 • no iPad (13-inch)"
+- "Carrier Shop • Brand Wall Shop • 2.78m • iPad + iPhone + Watch • no iPad (13-inch) • AWTTD"
+- "Carrier Shop • Graphic Table • 2.74m • iPad + iPhone + Watch (x3) • LS • AIS • Thailand"
+- "Carrier Shop • Wall Bay • 2.78m • iPad + iPhone + Watch • AWTTD"
+
+Common starting words: "Apple Shop", "Apple Shop Core", "Carrier Shop"
+Common fixture types: "Custom", "Inline Back to Back", "Brand Wall Shop", "Graphic Table", "Wall Bay"
+Common abbreviations to preserve as-is: "WM", "LS", "AWTTD", "SEA", "L"
+Common partners/countries: "AIS", "AWTTD", "Thailand", "SEA"
 
 Rules:
-- Use the "•" bullet character as separator (not dashes, commas, or pipes)
+- Use the "•" bullet character as separator between segments
 - Preserve EVERY segment including "with X" inclusions and "no X" exclusions
-- Do not reorder, summarize, or paraphrase
+- Preserve all sizes (2.74m, 5.00m), quantities (x3), and codes (Fixture ID 800513327) exactly
+- Do not reorder, summarize, paraphrase, or translate
 - Do not add extra text, quotes, or explanation
-- Return ONLY the configuration name on a single line`;
+- If the image contains multiple lines of related context (like store name on one line and config detail on another), join them with " • "
+- If you genuinely cannot find any configuration name in the image, return exactly: NO_CONFIG_FOUND
+- Otherwise return ONLY the configuration name on a single line
 
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${gemApiKey}`,
+Output:`;
+
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${gemApiKey}`,
         { method:"POST", headers:{"Content-Type":"application/json"},
-          body: JSON.stringify({ contents:[{parts:[
-            { text: prompt },
-            { inline_data:{ mime_type:file.type, data:b64 } }
-          ]}]})});
+          body: JSON.stringify({
+            contents:[{parts:[
+              { text: prompt },
+              { inline_data:{ mime_type:file.type, data:b64 } }
+            ]}],
+            generationConfig: { temperature: 0.1 }
+          })});
       const j = await res.json();
       name = j.candidates?.[0]?.content?.parts?.[0]?.text?.trim()||"";
-      // Strip any wrapping quotes or backticks the model might add
+      // Strip wrapping quotes or backticks
       name = name.replace(/^["'`]+|["'`]+$/g, "").trim();
+      // If model says no config found, treat as empty
+      if (name === "NO_CONFIG_FOUND" || name.toUpperCase().includes("NO_CONFIG_FOUND")) name = "";
     } catch(e){ console.error("scanCfgName error:", e); name = ""; }
   }
   if(name){
