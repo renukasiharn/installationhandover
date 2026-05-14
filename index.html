@@ -344,11 +344,17 @@ select.fi{-webkit-appearance:none;background:var(--surf)}
     </div>
     <div class="fgrp">
       <label>Password</label>
-      <input class="fi" id="lPass" type="password" placeholder="••••••••" value="Admin1234">
+      <div style="position:relative">
+        <input class="fi" id="lPass" type="password" placeholder="••••••••" value="Admin1234" style="padding-right:42px">
+        <button type="button" onclick="togglePw('lPass',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:0;cursor:pointer;font-size:16px;padding:4px 8px;color:var(--ink3)" title="Show password">👁️</button>
+      </div>
     </div>
     <button class="btn-login" id="lBtn" onclick="doLogin()">
       <span id="lBtnTxt">Sign In</span>
     </button>
+    <div style="text-align:center;margin-top:14px">
+      <a href="#" onclick="openForgotPw();return false" style="color:var(--blue);font-size:13px;text-decoration:none">Forgot password?</a>
+    </div>
     <div class="demo-box">
       <strong>Demo Accounts:</strong><br>
       👑 Admin: <strong>admin@co.com</strong> / Admin1234<br>
@@ -707,6 +713,29 @@ select.fi{-webkit-appearance:none;background:var(--surf)}
 </div>
 
 <!-- MODAL: Create/Edit Store -->
+<div class="modal-bg" id="mForgot">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-h">
+      <h2>Reset your password</h2>
+      <button class="modal-x" onclick="closeModal('mForgot')">✕</button>
+    </div>
+    <div class="modal-b">
+      <p style="color:var(--ink3);font-size:13px;line-height:1.5;margin-bottom:14px">
+        Enter the email associated with your account. We'll send you a new password.
+      </p>
+      <div class="fg">
+        <label>Email</label>
+        <input class="fi" id="fp_email" type="email" placeholder="your@email.com">
+      </div>
+      <div id="fp_msg" style="font-size:13px;margin-top:8px"></div>
+    </div>
+    <div class="modal-f">
+      <button class="btn btn-s" onclick="closeModal('mForgot')">Cancel</button>
+      <button class="btn btn-p" id="fp_btn" onclick="submitForgotPw()">Send new password</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="mStore">
   <div class="modal" style="max-width:520px">
     <div class="modal-h">
@@ -1073,6 +1102,47 @@ async function doLogin(){
 }
 function showLoginErr(msg){ const e=document.getElementById("loginErr"); e.textContent=msg; e.style.display="block"; }
 function doLogout(){ if(confirm("Sign out?")) location.reload(); }
+
+function togglePw(inputId, btn){
+  const el = document.getElementById(inputId);
+  if(!el) return;
+  if(el.type === "password"){ el.type = "text"; btn.textContent = "🙈"; btn.title = "Hide password"; }
+  else { el.type = "password"; btn.textContent = "👁️"; btn.title = "Show password"; }
+}
+
+function openForgotPw(){
+  // Prefill with whatever they typed in the login email field
+  const loginEmail = document.getElementById("lEmail")?.value || "";
+  document.getElementById("fp_email").value = loginEmail.trim();
+  document.getElementById("fp_msg").innerHTML = "";
+  document.getElementById("fp_btn").disabled = false;
+  document.getElementById("fp_btn").textContent = "Send new password";
+  openModal("mForgot");
+}
+
+async function submitForgotPw(){
+  const email = document.getElementById("fp_email").value.trim();
+  const msg = document.getElementById("fp_msg");
+  const btn = document.getElementById("fp_btn");
+  if(!email){ msg.innerHTML = '<span style="color:var(--red)">Please enter your email.</span>'; return; }
+  btn.disabled = true; btn.innerHTML = '<div class="spin"></div> Sending...';
+  try {
+    const res = await fetch(GAS_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "forgotPassword", email }),
+    });
+    const json = await res.json();
+    msg.innerHTML = `<div style="background:var(--green-l);color:var(--green);padding:10px 12px;border-radius:6px;line-height:1.5">
+      ✅ If an account with <strong>${email}</strong> exists, a new password has been sent to that inbox. Please check your email (and spam folder).
+    </div>`;
+    btn.textContent = "Sent ✓";
+    setTimeout(() => closeModal("mForgot"), 4000);
+  } catch(err) {
+    msg.innerHTML = '<span style="color:var(--red)">Could not contact server. Please try again.</span>';
+    btn.disabled = false; btn.textContent = "Send new password";
+  }
+}
 
 // ═══ SIDEBAR ═══
 function buildSidebar(role){
@@ -1628,8 +1698,9 @@ function renderUsers(){
             `<span style="color:var(--amber);font-size:11px;font-weight:600">⚠️ Not signed</span>`}</td>
       <td><span class="pill ${u.status}">${u.status==="active"?"Active":"Inactive"}</span></td>
       <td style="white-space:nowrap">
-        <button class="btn btn-s btn-sm" onclick="openEditUser('${u.id}')">✏️</button>
-        <button class="btn btn-d btn-sm" onclick="toggleUserStatus('${u.id}')">${u.status==="active"?"🔒":"🔓"}</button>
+        <button class="btn btn-s btn-sm" onclick="openEditUser('${u.id}')" title="Edit">✏️</button>
+        <button class="btn btn-s btn-sm" onclick="resetUserPassword('${u.id}','${(u.name||'').replace(/'/g,'')}')" title="Reset password">🔑</button>
+        <button class="btn btn-d btn-sm" onclick="toggleUserStatus('${u.id}')" title="${u.status==='active'?'Deactivate':'Activate'}">${u.status==="active"?"🔒":"🔓"}</button>
       </td>
     </tr>`;
   }).join("") || `<tr><td colspan="8" style="text-align:center;color:var(--ink3);padding:24px">No users found</td></tr>`;
@@ -1721,6 +1792,18 @@ async function toggleUserStatus(uid){
     await refreshEntity("users");
     renderUsers();
     toast("Status updated","ok");
+  } catch(e){}
+}
+
+async function resetUserPassword(uid, name){
+  if(!confirm(`Reset password for "${name}"?\n\nA new password will be generated and emailed to the user.`)) return;
+  try {
+    const r = await api("resetPassword", { id: uid });
+    toast(`Password reset — emailed to user`, "ok");
+    // Show the new password to admin too (in case email fails)
+    if(r.newPassword){
+      alert(`New password for ${name}:\n\n${r.newPassword}\n\nThe user has also been emailed.`);
+    }
   } catch(e){}
 }
 
