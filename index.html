@@ -1674,6 +1674,9 @@ async function saveConfig(){
   const name = document.getElementById("cfgName").value.trim();
   const vdoUrl = document.getElementById("cfgVdoUrl").value.trim();
   if(!name){ toast("Configuration name is required","err"); return; }
+  // Duplicate name check (exclude self when editing)
+  const dupCfg = DB.configs.find(c => c.name === name && c.id !== editingCfgId);
+  if(dupCfg){ toast("Configuration name already exists","err"); return; }
   const products = getCfgProductRows();
   if(!products.length){ toast("Add at least one product","err"); return; }
   const prog = detectProgram(name);
