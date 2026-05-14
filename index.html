@@ -6,6 +6,7 @@
 <title>Installation Handover System</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/4.1.7/signature_pad.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
 :root{
   --bg:#f4f6f9;--surf:#fff;--surf2:#f8f9fb;--border:#e5e8ef;
@@ -862,8 +863,8 @@ select.fi{-webkit-appearance:none;background:var(--surf)}
           <label>Role <span class="req">*</span></label>
           <select class="fi" id="mu_role">
             <option value="user">👤 User (Recipient)</option>
-            <option value="installer">🔧 Installer</option>
-            <option value="admin2">👑 Admin</option>
+            <option value="installer" id="mu_role_installer">🔧 Installer</option>
+            <option value="admin2" id="mu_role_admin">👑 Admin</option>
             <option value="admin1" id="mu_role_super">⭐ Super Admin</option>
           </select>
         </div>
@@ -1896,6 +1897,14 @@ function renderUsers(){
     const toggleBtn = canToggle
       ? `<button class="btn btn-d btn-sm" onclick="toggleUserStatus('${u.id}')" title="${u.status==='active'?'Deactivate':'Activate'}">${u.status==="active"?"🔒":"🔓"}</button>`
       : "";
+    // Admin2 / Installer can only edit User rows (not other admins/installers)
+    const canEditRow = (CU?.role === "admin1") || (role === "user");
+    const editBtn = canEditRow
+      ? `<button class="btn btn-s btn-sm" onclick="openEditUser('${u.id}')" title="Edit">✏️</button>`
+      : "";
+    const resetBtn = canEditRow
+      ? `<button class="btn btn-s btn-sm" onclick="resetUserPassword('${u.id}','${(u.name||'').replace(/'/g,'')}')" title="Reset password">🔑</button>`
+      : "";
     return `<tr>
       <td><div style="font-weight:600;font-size:12px">${u.name}</div></td>
       <td style="font-size:11px;color:var(--ink3)">${u.email}</td>
@@ -1907,8 +1916,8 @@ function renderUsers(){
             `<span style="color:var(--amber);font-size:11px;font-weight:600">⚠️ Not signed</span>`}</td>
       <td><span class="pill ${u.status}">${u.status==="active"?"Active":"Inactive"}</span></td>
       <td style="white-space:nowrap">
-        <button class="btn btn-s btn-sm" onclick="openEditUser('${u.id}')" title="Edit">✏️</button>
-        <button class="btn btn-s btn-sm" onclick="resetUserPassword('${u.id}','${(u.name||'').replace(/'/g,'')}')" title="Reset password">🔑</button>
+        ${editBtn}
+        ${resetBtn}
         ${toggleBtn}
       </td>
     </tr>`;
@@ -1925,15 +1934,27 @@ function openCreateUser(){
   document.getElementById("mu_phone").value = "";
   document.getElementById("mu_password").value = "";
   document.getElementById("mu_role").value = "user";
-  // Hide "Super Admin" option for non-Admin1 users
-  const superOpt = document.getElementById("mu_role_super");
-  if(superOpt) superOpt.style.display = (CU?.role === "admin1") ? "" : "none";
+  // Only Super Admin can create Installer / Admin / Super Admin
+  const isSuper = CU?.role === "admin1";
+  const optSuper = document.getElementById("mu_role_super");
+  const optAdmin = document.getElementById("mu_role_admin");
+  const optInst  = document.getElementById("mu_role_installer");
+  if(optSuper) optSuper.style.display = isSuper ? "" : "none";
+  if(optAdmin) optAdmin.style.display = isSuper ? "" : "none";
+  if(optInst)  optInst.style.display  = isSuper ? "" : "none";
   document.getElementById("mu_emailCheck").innerHTML = "";
   openModal("mUser");
 }
 
 function openEditUser(uid){
   const u = DB.users.find(x=>String(x.id)===String(uid)); if(!u) return;
+  // Permission gate: only Super Admin can edit Installer / Admin / Super Admin
+  const isSuper = CU?.role === "admin1";
+  const targetRole = (u.role === "admin") ? "admin1" : u.role;
+  if(!isSuper && targetRole !== "user"){
+    toast("Only Super Admin can edit Installer or Admin accounts","err");
+    return;
+  }
   editingUserId = uid;
   document.getElementById("mUserTitle").textContent = "Edit User";
   setTimeout(()=>bindPhoneFormat("mu_phone"), 50);
@@ -1942,11 +1963,14 @@ function openEditUser(uid){
   document.getElementById("mu_email").value = u.email;
   document.getElementById("mu_phone").value = formatPhone(u.phone)||"";
   document.getElementById("mu_password").value = u.password;
-  // Normalize legacy "admin" → "admin1" for the dropdown
-  document.getElementById("mu_role").value = (u.role === "admin") ? "admin1" : u.role;
-  // Hide Super Admin option for non-Admin1 users (so admin2/installer can't elevate)
-  const superOpt = document.getElementById("mu_role_super");
-  if(superOpt) superOpt.style.display = (CU?.role === "admin1") ? "" : "none";
+  document.getElementById("mu_role").value = targetRole;
+  // Show role options only to Super Admin (others can only manage Users)
+  const optSuper = document.getElementById("mu_role_super");
+  const optAdmin = document.getElementById("mu_role_admin");
+  const optInst  = document.getElementById("mu_role_installer");
+  if(optSuper) optSuper.style.display = isSuper ? "" : "none";
+  if(optAdmin) optAdmin.style.display = isSuper ? "" : "none";
+  if(optInst)  optInst.style.display  = isSuper ? "" : "none";
   document.getElementById("mu_emailCheck").innerHTML = "";
   openModal("mUser");
 }
@@ -2117,7 +2141,7 @@ function populateInstallerSelect(){
   const sel = document.getElementById("mj_installerPick");
   if(!sel) return;
   sel.innerHTML = '<option value="">— Select installer —</option>' +
-    DB.users.filter(u=>(u.role==="installer"||u.role==="admin1"||u.role==="admin2"||u.role==="admin")&&u.status==="active").map(u=>{
+    DB.users.filter(u=>u.role==="installer"&&u.status==="active").map(u=>{
       const sigMark = u.savedSig?" ✅":" ⚠️ no sig";
       return `<option value="${u.id}">${u.name} (${u.position||u.role})${sigMark}</option>`;
     }).join("");
