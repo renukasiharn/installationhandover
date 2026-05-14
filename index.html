@@ -2417,7 +2417,8 @@ async function saveProfile(){
 
 async function saveProfileSig(){
   if(!profSigPad || profSigPad.isEmpty()){ toast("Please sign first","err"); return; }
-  const dataUrl = profSigPad.toDataURL();
+  const rawUrl = profSigPad.toDataURL();
+  const dataUrl = await compressSigDataUrl(rawUrl);
   try {
     await api("update", { entity: "users", id: CU.id, data: { savedSig: dataUrl } });
     CU.savedSig = dataUrl;
@@ -2821,7 +2822,9 @@ async function finalSubmit(){
 
   const job = DB.jobs.find(j=>j.id===currentJobId);
   const submitAt = new Date().toISOString().slice(0,16).replace("T"," ");
-  const receiverSig = capturedReceiverSig || (recvPad && !recvPad.isEmpty() ? recvPad.toDataURL() : null);
+  const rawSig = capturedReceiverSig || (recvPad && !recvPad.isEmpty() ? recvPad.toDataURL() : null);
+  // Compress signature to keep it well under Google Sheet's 50,000 chars/cell limit
+  const receiverSig = rawSig ? await compressSigDataUrl(rawSig) : null;
 
   // Stamp local copy so PDF builder picks up the freshest values
   job.status = "done";
@@ -2902,6 +2905,34 @@ function blobToBase64(blob){
     };
     r.onerror = reject;
     r.readAsDataURL(blob);
+  });
+}
+
+// Resize + recompress a signature dataURL so it fits inside a single Google Sheet cell
+// (50,000 char limit). Targets ~600px width and JPEG quality 0.6.
+function compressSigDataUrl(dataUrl, maxW = 600, quality = 0.6){
+  return new Promise(resolve => {
+    if(!dataUrl){ resolve(dataUrl); return; }
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxW / img.width);
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      const ctx = c.getContext("2d");
+      // Paint white background so transparent strokes export as black ink, not invisible
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+      try {
+        resolve(c.toDataURL("image/jpeg", quality));
+      } catch(e) {
+        resolve(dataUrl); // fallback to original if anything goes wrong
+      }
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
   });
 }
 
