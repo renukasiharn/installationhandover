@@ -302,9 +302,16 @@ select.fi{-webkit-appearance:none;background:var(--surf)}
 .btn-pdf:hover{background:var(--blue)}
 
 /* PDF */
-.pdf-page{width:794px;min-height:1123px;padding:22px 28px 60px;background:#fff;
+.pdf-page{width:794px;height:1123px;padding:22px 28px;background:#fff;
   position:relative;font-family:'Inter',sans-serif;font-size:12px;color:#1a1d23;
-  box-shadow:0 0 0 1px var(--border);margin:0 auto 18px}
+  box-shadow:0 0 0 1px var(--border);margin:0 auto 18px;overflow:hidden}
+/* Header pinned to top region */
+.pdf-page .pdf-header{position:relative}
+/* Content fills the middle, anchored between header and footer */
+.pdf-page .pdf-content{margin-top:4px}
+/* Signature pinned to bottom region — fixed position so layout doesn't shift
+   regardless of how much content is above it */
+.pdf-page .pdf-footer{position:absolute;left:28px;right:28px;bottom:22px}
 @media print{
   body > *:not(#mPdf){display:none !important}
   #mPdf{position:fixed;inset:0;z-index:9999;background:#fff}
@@ -3300,8 +3307,8 @@ function buildPdfHtml(job){
   const products = (job.demoOverrides && job.demoOverrides.length) ? job.demoOverrides : (cfg?.products || []);
   const installers = (job.installerIds||[]).map(id=>DB.users.find(u=>u.id===id)).filter(Boolean);
 
-  // Split products into pages of 12 rows each
-  const ROWS_PER_PAGE = 12;
+  // Split products into pages of 10 rows each (fits inside fixed header/footer area)
+  const ROWS_PER_PAGE = 10;
   const productPages = [];
   for(let i=0; i<Math.max(1, Math.ceil(products.length/ROWS_PER_PAGE)); i++){
     productPages.push(products.slice(i*ROWS_PER_PAGE, (i+1)*ROWS_PER_PAGE));
@@ -3321,18 +3328,17 @@ function buildPdfHtml(job){
   };
 
   const renderHeader = () => `
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
       <div>
-        <h2 style="font-size:18px;font-weight:700;color:#1a1d23">Completion Handover Form</h2>
+        <h2 style="font-size:17px;font-weight:700;color:#1a1d23;margin:0">Completion Handover Form</h2>
       </div>
-      <img src="${RTC_LOGO}" style="height:32px" alt="RTC">
+      <img src="${RTC_LOGO}" style="height:28px;margin-right:6px" alt="RTC">
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;margin-bottom:18px;font-size:12px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 24px;margin-bottom:14px;font-size:11px">
       <div><strong>Partner:</strong> ${job.partner||"—"}</div>
       <div><strong>Installation Date:</strong> ${job.installDate||"—"}</div>
       <div><strong>Store ID:</strong> ${job.storeId||"—"}</div>
-      <div></div>
-      <div style="grid-column:1/-1"><strong>Store Address:</strong> ${job.address||"—"}</div>
+      <div><strong>Store Name:</strong> ${job.store||"—"}</div>
       <div style="grid-column:1/-1"><strong>Fixture Type:</strong> ${cfg?.fixtureType||"—"}</div>
     </div>`;
 
@@ -3344,7 +3350,7 @@ function buildPdfHtml(job){
 
     const totalSigCols = Math.max(installers.length, 1) + 1;
     return `
-    <div style="margin-top:14px;page-break-inside:avoid">
+    <div style="page-break-inside:avoid">
       <div style="display:grid;grid-template-columns:repeat(${totalSigCols}, 1fr);gap:10px;margin-bottom:3px">
         <div style="grid-column:1 / span ${Math.max(installers.length,1)};font-weight:700;font-size:10px">Installer Signature:</div>
         <div style="font-weight:700;font-size:10px">Receiver Signature:</div>
@@ -3371,58 +3377,62 @@ function buildPdfHtml(job){
         </div>
       </div>
     </div>
-    <div style="position:absolute;bottom:18px;left:28px;right:28px;display:flex;justify-content:space-between;font-size:9px;color:#999;border-top:1px solid #e5e5e5;padding-top:6px">
+    <div style="margin-top:8px;display:flex;justify-content:space-between;font-size:9px;color:#999;border-top:1px solid #e5e5e5;padding-top:5px">
       <span>Installation Handover System · ${job.id}</span>
       <span>Page ${pageNum}/${totalPages}</span>
     </div>`;
   };
 
-  // PAGE 1: Checklist
+  // PAGE 1: Checklist — header pinned top, signature pinned bottom, content in middle
   const page1 = `
     <div class="pdf-page" translate="no" lang="en">
-      ${renderHeader()}
-      <div style="margin-bottom:18px">
-        ${CHECKLIST.map((q,i)=>{
-          const ans = job.checklist?.[i] || job.checklist?.["q"+(i+1)];
-          const cb = (chk) => `<span style="display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border:1.5px solid #333;border-radius:2px;font-size:10px">${chk?"✓":""}</span>`;
-          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f0f0f0;font-size:11px">
-            <span>${i+1}. ${q.en}</span>
-            <span style="display:flex;gap:14px">
-              <span style="display:flex;align-items:center;gap:4px">${cb(ans==="yes")} Yes</span>
-              <span style="display:flex;align-items:center;gap:4px">${cb(ans==="no")} No</span>
-              <span style="display:flex;align-items:center;gap:4px">${cb(ans==="na")} N/A</span>
-            </span>
-          </div>`;
-        }).join("")}
+      <div class="pdf-header">${renderHeader()}</div>
+      <div class="pdf-content">
+        <div style="margin-bottom:14px">
+          ${CHECKLIST.map((q,i)=>{
+            const ans = job.checklist?.[i] || job.checklist?.["q"+(i+1)];
+            const cb = (chk) => `<span style="display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border:1.5px solid #333;border-radius:2px;font-size:10px">${chk?"✓":""}</span>`;
+            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:11px">
+              <span>${i+1}. ${q.en}</span>
+              <span style="display:flex;gap:14px;flex-shrink:0;margin-left:10px">
+                <span style="display:flex;align-items:center;gap:4px">${cb(ans==="yes")} Yes</span>
+                <span style="display:flex;align-items:center;gap:4px">${cb(ans==="no")} No</span>
+                <span style="display:flex;align-items:center;gap:4px">${cb(ans==="na")} N/A</span>
+              </span>
+            </div>`;
+          }).join("")}
+        </div>
+        <div><strong style="font-size:11px">Note:</strong>
+          <div style="margin-top:4px;font-size:11px;min-height:30px;padding:6px;border:1px solid #f0f0f0;border-radius:4px;white-space:pre-wrap;word-wrap:break-word">${job.note||""}</div></div>
       </div>
-      <div style="margin-bottom:18px"><strong style="font-size:11px">Note:</strong>
-        <div style="margin-top:4px;font-size:11px;min-height:30px;padding:6px;border:1px solid #f0f0f0;border-radius:4px">${job.note||""}</div></div>
-      ${renderSigFooter(1)}
+      <div class="pdf-footer">${renderSigFooter(1)}</div>
     </div>`;
 
-  // Demo Product pages
+  // Demo Product pages — header pinned top, signature pinned bottom
   const demoPages = productPages.map((pageProds, pi)=>{
     const pageNum = pi + 2;
     return `<div class="pdf-page" translate="no" lang="en">
-      ${renderHeader()}
-      <div style="margin-bottom:10px">
-        <strong style="font-size:11px">Configuration:</strong>
-        <div style="font-size:11px;color:#7c3a00;background:#fef3c7;border-left:3px solid #d97706;padding:6px 10px;border-radius:0 4px 4px 0;margin-top:4px;line-height:1.5">${cfg?.name||"—"}</div>
+      <div class="pdf-header">${renderHeader()}
+        <div style="margin-bottom:8px">
+          <strong style="font-size:11px">Configuration:</strong>
+          <div style="font-size:10px;color:#7c3a00;background:#fef3c7;border-left:3px solid #d97706;padding:5px 9px;border-radius:0 4px 4px 0;margin-top:3px;line-height:1.4">${cfg?.name||"—"}</div>
+        </div>
+        <div style="font-weight:700;font-size:11px;margin-bottom:5px">Demo Products</div>
       </div>
-      <div style="font-weight:700;font-size:12px;margin-bottom:8px">Demo Products</div>
+      <div class="pdf-content">
       <table style="width:100%;border-collapse:collapse;font-size:9px;table-layout:fixed">
         <colgroup>
           <col style="width:3%">
-          <col style="width:13%">
-          <col style="width:14%">
-          <col style="width:6%">
+          <col style="width:15%">
+          <col style="width:10%">
+          <col style="width:7%">
           <col style="width:6%">
           <col style="width:4%">
-          <col style="width:10%">
-          <col style="width:10%">
           <col style="width:12%">
-          <col style="width:8%">
-          <col style="width:14%">
+          <col style="width:12%">
+          <col style="width:9%">
+          <col style="width:9%">
+          <col style="width:13%">
         </colgroup>
         <thead>
           <tr style="background:#f8f9fb">
@@ -3440,7 +3450,7 @@ function buildPdfHtml(job){
           </tr>
         </thead>
         <tbody>
-          ${pageProds.map((p,i)=>`<tr>
+          ${pageProds.map((p,i)=>`<tr style="page-break-inside:avoid">
             <td style="padding:4px 4px;border:1px solid #e0e0e0;text-align:center;color:#999;word-break:break-word">${pi*ROWS_PER_PAGE+i+1}</td>
             <td style="padding:4px 4px;border:1px solid #e0e0e0;font-weight:600;word-break:break-word">${p.product}</td>
             <td style="padding:4px 4px;border:1px solid #e0e0e0;color:#666;word-break:break-word">${p.color||"—"}</td>
@@ -3455,7 +3465,8 @@ function buildPdfHtml(job){
           </tr>`).join("")}
         </tbody>
       </table>
-      ${renderSigFooter(pageNum)}
+      </div>
+      <div class="pdf-footer">${renderSigFooter(pageNum)}</div>
     </div>`;
   }).join("");
 
