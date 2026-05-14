@@ -478,8 +478,8 @@ select.fi{-webkit-appearance:none;background:var(--surf)}
 
       <!-- ADMIN: Create Config Preset -->
       <div class="page" id="pConfig">
-        <div class="ph">New Configuration Preset</div>
-        <div class="ps">Create configuration with product list</div>
+        <div class="ph" id="cfgPageTitle">New Configuration Preset</div>
+        <div class="ps" id="cfgPageSub">Create configuration with product list</div>
 
         <div class="card">
           <div class="card-h">
@@ -1707,6 +1707,8 @@ async function saveConfig(){
 
 function clearCfgForm(){
   editingCfgId = null;
+  document.getElementById("cfgPageTitle").textContent = "New Configuration Preset";
+  document.getElementById("cfgPageSub").textContent = "Create configuration with product list";
   document.getElementById("cfgName").value = "";
   document.getElementById("cfgProductRows").innerHTML = "";
   cfgProductCount = 0;
@@ -1787,8 +1789,10 @@ function openPresetDetail(cfgId){
 
 function openEditPreset(cfgId){
   const cfg = DB.configs.find(c=>c.id===cfgId); if(!cfg) return;
-  editingCfgId = cfgId;
   showPage("pConfig");
+  editingCfgId = cfgId;
+  document.getElementById("cfgPageTitle").textContent = "Edit Configuration Preset";
+  document.getElementById("cfgPageSub").textContent = "Editing: " + cfg.name.slice(0,60);
   document.getElementById("cfgName").value = cfg.name;
   onCfgNameInput(cfg.name);
   if(cfg.vdoUrl) document.getElementById("cfgVdoUrl").value = cfg.vdoUrl;
