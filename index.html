@@ -1284,12 +1284,12 @@ function renderDashJobs(){
 // ═══ PROGRAM / VDO ═══
 function detectProgram(name){
   if(!name) return null;
-  const l = name.trim().toLowerCase();
+  const l = String(name).trim().toLowerCase();
   for(const p of PROGRAM_VDO_MAP){
-    for(const kw of p.keywords){ if(l.startsWith(kw.toLowerCase())) return p; }
+    for(const kw of (p.keywords||[])){ if(l.startsWith(String(kw).toLowerCase())) return p; }
   }
   for(const p of PROGRAM_VDO_MAP){
-    for(const kw of p.keywords){ if(l.includes(kw.toLowerCase())) return p; }
+    for(const kw of (p.keywords||[])){ if(l.includes(String(kw).toLowerCase())) return p; }
   }
   return null;
 }
@@ -1776,7 +1776,7 @@ function renderPresets(){
   const q = (document.getElementById("presetSearch")?.value||"").toLowerCase();
   const sortBy = document.getElementById("presetSort")?.value||"name";
   let list = [...DB.configs];
-  if(q) list = list.filter(c=>c.name.toLowerCase().includes(q)||c.programName?.toLowerCase().includes(q)||c.fixtureType?.toLowerCase().includes(q));
+  if(q) list = list.filter(c=>String(c.name||"").toLowerCase().includes(q)||String(c.programName||"").toLowerCase().includes(q)||String(c.fixtureType||"").toLowerCase().includes(q));
   list.sort((a,b)=>{
     if(sortBy==="program") return (a.programName||"").localeCompare(b.programName||"");
     if(sortBy==="fixture") return (a.fixtureType||"").localeCompare(b.fixtureType||"");
@@ -1869,9 +1869,9 @@ function renderUsers(){
   let list = DB.users.filter(u=>{
     if(role && u.role!==role) return false;
     if(!q) return true;
-    return u.name.toLowerCase().includes(q) ||
-           u.email.toLowerCase().includes(q) ||
-           (u.phone||"").toLowerCase().includes(q);
+    return String(u.name||"").toLowerCase().includes(q) ||
+           String(u.email||"").toLowerCase().includes(q) ||
+           String(u.phone||"").toLowerCase().includes(q);
   });
   document.getElementById("userListBody").innerHTML = list.map(u=>{
     const roleIcon = {admin:"👑",installer:"🔧",user:"👤"}[u.role]||"";
@@ -2005,9 +2005,9 @@ function renderJobs(){
     if(status && j.status!==status) return false;
     if(!q) return true;
     const u = DB.users.find(x=>x.id===j.userId);
-    return (u?.name||"").toLowerCase().includes(q) ||
-           (j.store||"").toLowerCase().includes(q) ||
-           (j.partner||"").toLowerCase().includes(q);
+    return String(u?.name||"").toLowerCase().includes(q) ||
+           String(j.store||"").toLowerCase().includes(q) ||
+           String(j.partner||"").toLowerCase().includes(q);
   });
   const jobLabels = {installation:"Installation",dism_repack:"Dism & Repack",dispose:"Dispose"};
   document.getElementById("jobListBody").innerHTML = list.map(j=>{
@@ -2123,7 +2123,7 @@ function filterStores(q){
   q = q.trim().toLowerCase();
   const dd = document.getElementById("storeDD");
   if(!q){ dd.classList.remove("open"); return; }
-  const results = STORES.filter(s=>String(s.id).toLowerCase().includes(q)||(s.name||"").toLowerCase().includes(q)||(s.partner||"").toLowerCase().includes(q));
+  const results = STORES.filter(s=>String(s.id).toLowerCase().includes(q)||String(s.name||"").toLowerCase().includes(q)||String(s.partner||"").toLowerCase().includes(q));
   dd.innerHTML = results.length ? results.map(s=>`
     <div class="store-opt" onmousedown="pickStore('${s.id}')">
       <span class="so-id">${s.id}</span>
@@ -2867,9 +2867,9 @@ function renderStores(){
     if(partner && s.partner!==partner) return false;
     if(!q) return true;
     return String(s.id).toLowerCase().includes(q) ||
-           (s.name||"").toLowerCase().includes(q) ||
-           (s.partner||"").toLowerCase().includes(q) ||
-           (s.address||"").toLowerCase().includes(q);
+           String(s.name||"").toLowerCase().includes(q) ||
+           String(s.partner||"").toLowerCase().includes(q) ||
+           String(s.address||"").toLowerCase().includes(q);
   });
   document.getElementById("storeListBody").innerHTML = list.map(s=>{
     const partnerObj = (DB.partners||[]).find(p=>p.name===s.partner);
@@ -2957,7 +2957,7 @@ async function saveStore(){
   }
   // Name duplicate (exclude self when editing)
   const nameLower = name.toLowerCase();
-  if(STORES.some(s=>(s.name||"").trim().toLowerCase()===nameLower && String(s.id)!==String(editingStoreId))){
+  if(STORES.some(s=>String(s.name||"").trim().toLowerCase()===nameLower && String(s.id)!==String(editingStoreId))){
     toast("Store name already exists","err"); return;
   }
   try {
@@ -3036,7 +3036,7 @@ async function savePartner(){
   if(!name){ toast("Partner name is required","err"); return; }
   // Duplicate check (exclude self when editing)
   const nameLower = name.toLowerCase();
-  if((DB.partners||[]).some(p=>(p.name||"").trim().toLowerCase()===nameLower && String(p.id)!==String(editingPartnerId))){
+  if((DB.partners||[]).some(p=>String(p.name||"").trim().toLowerCase()===nameLower && String(p.id)!==String(editingPartnerId))){
     toast("Partner name already exists","err"); return;
   }
   try {
