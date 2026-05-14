@@ -419,9 +419,6 @@ select.fi{-webkit-appearance:none;background:var(--surf)}
           </div>
           <select class="fi" id="storePartnerFilter" onchange="renderStores()" style="width:160px;font-size:12px;padding:8px 10px">
             <option value="">All Partners</option>
-            <option value="AIS">AIS</option>
-            <option value="DTAC">DTAC</option>
-            <option value="TRUE">TRUE</option>
           </select>
           <button class="btn btn-g" onclick="openCreateStore()">➕ New Store</button>
         </div>
@@ -432,6 +429,25 @@ select.fi{-webkit-appearance:none;background:var(--surf)}
                 <th>Store ID</th><th>Store Name</th><th>Partner</th><th>Address</th><th></th>
               </tr></thead>
               <tbody id="storeListBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADMIN: Partners -->
+      <div class="page" id="pPartners">
+        <div class="ph">Partners</div>
+        <div class="ps">Manage the list of partners (telco brands) used by Stores</div>
+        <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+          <button class="btn btn-g" onclick="openCreatePartner()">➕ New Partner</button>
+        </div>
+        <div class="card">
+          <div style="overflow-x:auto">
+            <table class="tbl">
+              <thead><tr>
+                <th>Partner Name</th><th>Color</th><th>Preview</th><th>Used by Stores</th><th></th>
+              </tr></thead>
+              <tbody id="partnerListBody"></tbody>
             </table>
           </div>
         </div>
@@ -748,11 +764,7 @@ select.fi{-webkit-appearance:none;background:var(--surf)}
       </div>
       <div class="fg">
         <label>Partner <span class="req">*</span></label>
-        <select class="fi" id="ms_partner">
-          <option value="AIS">AIS</option>
-          <option value="DTAC">DTAC</option>
-          <option value="TRUE">TRUE</option>
-        </select>
+        <select class="fi" id="ms_partner"></select>
       </div>
       <div class="fg">
         <label>Address</label>
@@ -762,6 +774,33 @@ select.fi{-webkit-appearance:none;background:var(--surf)}
     <div class="modal-f">
       <button class="btn btn-s" onclick="closeModal('mStore')">Cancel</button>
       <button class="btn btn-g" onclick="saveStore()">💾 Save Store</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Create/Edit Partner -->
+<div class="modal-bg" id="mPartner">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-h">
+      <h2 id="mPartnerTitle">New Partner</h2>
+      <button class="modal-x" onclick="closeModal('mPartner')">✕</button>
+    </div>
+    <div class="modal-b">
+      <div class="fg">
+        <label>Partner Name <span class="req">*</span></label>
+        <input class="fi" id="mpt_name" placeholder="e.g. AIS / DTAC / TRUE">
+      </div>
+      <div class="fg">
+        <label>Color (hex)</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="fi" id="mpt_color" type="color" value="#0066cc" style="width:60px;height:36px;padding:2px;cursor:pointer" oninput="document.getElementById('mpt_colorText').value=this.value">
+          <input class="fi" id="mpt_colorText" placeholder="#0066cc" style="flex:1" oninput="document.getElementById('mpt_color').value=this.value">
+        </div>
+      </div>
+    </div>
+    <div class="modal-f">
+      <button class="btn btn-s" onclick="closeModal('mPartner')">Cancel</button>
+      <button class="btn btn-g" onclick="savePartner()">💾 Save Partner</button>
     </div>
   </div>
 </div>
@@ -959,6 +998,7 @@ const DB = {
   configs: [],
   jobs: [],
   stores: [],
+  partners: [],
   programs: [],
 };
 
@@ -1018,6 +1058,7 @@ async function loadAllData() {
   const r = await api("bootstrap");
   DB.users    = r.data.users    || [];
   DB.stores   = r.data.stores   || [];
+  DB.partners = r.data.partners || [];
   DB.programs = r.data.programs || [];
   DB.configs  = r.data.configs  || [];
   DB.jobs     = r.data.jobs     || [];
@@ -1150,6 +1191,7 @@ function buildSidebar(role){
     menu = [
       { id:"pDash", icon:"📊", label:"Dashboard" },
       { id:"pStores", icon:"🏪", label:"Stores" },
+      { id:"pPartners", icon:"📡", label:"Partners" },
       { id:"pPrograms", icon:"🎬", label:"Programs & VDO" },
       { id:"pPresets", icon:"📦", label:"Configuration Presets" },
       { id:"pConfig", icon:"➕", label:"New Preset" },
@@ -1178,7 +1220,8 @@ function showPage(id){
   else if(id==="pMyJobs") renderMyJobs();
   else if(id==="pConfig") clearCfgForm();
   else if(id==="pPrograms") renderPrograms();
-  else if(id==="pStores") renderStores();
+  else if(id==="pPartners") renderPartners();
+  else if(id==="pStores") { populatePartnerFilter(); renderStores(); }
 }
 
 
@@ -2032,7 +2075,7 @@ function openEditJob(jobId){
   document.getElementById("mj_videoUrl").value = j.videoUrl||"";
   document.getElementById("mj_adminNote").value = j.adminNote||"";
   // Pre-fill store
-  selectedStore = STORES.find(s=>s.id===j.storeId);
+  selectedStore = STORES.find(s=>String(s.id)===String(j.storeId));
   if(selectedStore) pickStore(selectedStore.id);
   // Pre-fill installers
   pickedInstallerIds = [...(j.installerIds||[])];
@@ -2080,7 +2123,7 @@ function filterStores(q){
   q = q.trim().toLowerCase();
   const dd = document.getElementById("storeDD");
   if(!q){ dd.classList.remove("open"); return; }
-  const results = STORES.filter(s=>s.id.includes(q)||s.name.toLowerCase().includes(q)||s.partner.toLowerCase().includes(q));
+  const results = STORES.filter(s=>String(s.id).toLowerCase().includes(q)||(s.name||"").toLowerCase().includes(q)||(s.partner||"").toLowerCase().includes(q));
   dd.innerHTML = results.length ? results.map(s=>`
     <div class="store-opt" onmousedown="pickStore('${s.id}')">
       <span class="so-id">${s.id}</span>
@@ -2095,7 +2138,7 @@ function openStoreDD(){ const q=document.getElementById("storeInput")?.value?.tr
 function closeStoreDD(){ document.getElementById("storeDD")?.classList.remove("open"); }
 
 function pickStore(id){
-  const s = STORES.find(x=>x.id===id); if(!s) return;
+  const s = STORES.find(x=>String(x.id)===String(id)); if(!s) return;
   selectedStore = s;
   const wrap = document.getElementById("storeWrap");
   wrap.innerHTML = `<div class="store-sel-row">
@@ -2105,7 +2148,9 @@ function pickStore(id){
   </div>`;
   const pEl = document.getElementById("mj_partner_d");
   pEl.className = "af-box filled";
-  pEl.innerHTML = `<span style="font-size:11px;font-weight:700;background:var(--blue);color:#fff;padding:2px 9px;border-radius:20px">📡 ${s.partner}</span>`;
+  const partnerObj = (DB.partners||[]).find(p=>p.name===s.partner);
+  const partnerColor = partnerObj?.color || "#0066cc";
+  pEl.innerHTML = `<span style="font-size:11px;font-weight:700;background:${partnerColor};color:#fff;padding:2px 9px;border-radius:20px">📡 ${s.partner}</span>`;
   const sEl = document.getElementById("mj_store_d");
   sEl.className = "af-box filled";
   sEl.textContent = s.name;
@@ -2821,13 +2866,14 @@ function renderStores(){
   let list = STORES.filter(s=>{
     if(partner && s.partner!==partner) return false;
     if(!q) return true;
-    return s.id.toLowerCase().includes(q) ||
-           s.name.toLowerCase().includes(q) ||
-           s.partner.toLowerCase().includes(q) ||
+    return String(s.id).toLowerCase().includes(q) ||
+           (s.name||"").toLowerCase().includes(q) ||
+           (s.partner||"").toLowerCase().includes(q) ||
            (s.address||"").toLowerCase().includes(q);
   });
   document.getElementById("storeListBody").innerHTML = list.map(s=>{
-    const partnerColor = {AIS:"#0066cc",DTAC:"#0891b2",TRUE:"#dc2626"}[s.partner] || "#666";
+    const partnerObj = (DB.partners||[]).find(p=>p.name===s.partner);
+    const partnerColor = partnerObj?.color || "#666";
     return `<tr>
       <td><code style="font-family:monospace;font-size:11px;font-weight:700;background:var(--amber-l);color:var(--amber);padding:2px 8px;border-radius:3px">${s.id}</code></td>
       <td><div style="font-weight:600;font-size:12px">${s.name}</div></td>
@@ -2847,7 +2893,7 @@ function openCreateStore(){
   document.getElementById("ms_id").value = "";
   document.getElementById("ms_id").readOnly = false;
   document.getElementById("ms_name").value = "";
-  document.getElementById("ms_partner").value = "AIS";
+  populatePartnerDropdown("ms_partner");
   document.getElementById("ms_address").value = "";
   document.getElementById("ms_idCheck").innerHTML = "";
   // Bind ID dup check
@@ -2856,26 +2902,46 @@ function openCreateStore(){
 }
 
 function openEditStore(sid){
-  const s = STORES.find(x=>x.id===sid); if(!s) return;
-  editingStoreId = sid;
+  const s = STORES.find(x=>String(x.id)===String(sid)); if(!s) return;
+  editingStoreId = s.id;
   document.getElementById("mStoreTitle").textContent = "Edit Store — " + s.id;
   document.getElementById("ms_id").value = s.id;
   document.getElementById("ms_id").readOnly = true;  // Cannot change store ID after creation
   document.getElementById("ms_name").value = s.name;
-  document.getElementById("ms_partner").value = s.partner;
+  populatePartnerDropdown("ms_partner", s.partner);
   document.getElementById("ms_address").value = s.address||"";
   document.getElementById("ms_idCheck").innerHTML = '<span style="color:var(--ink3);font-size:10px">Store ID cannot be changed after creation</span>';
   openModal("mStore");
 }
 
+// Helper: populate any <select> with partner options from DB.partners
+function populatePartnerDropdown(selectId, selectedValue){
+  const el = document.getElementById(selectId);
+  if(!el) return;
+  const opts = (DB.partners||[]).map(p=>`<option value="${p.name}"${p.name===selectedValue?" selected":""}>${p.name}</option>`).join("");
+  el.innerHTML = opts || '<option value="">— No partners yet —</option>';
+}
+
+// Populate the Stores page filter (with "All Partners" prefix)
+function populatePartnerFilter(){
+  const el = document.getElementById("storePartnerFilter");
+  if(!el) return;
+  const current = el.value;
+  const opts = (DB.partners||[]).map(p=>`<option value="${p.name}">${p.name}</option>`).join("");
+  el.innerHTML = `<option value="">All Partners</option>${opts}`;
+  if(current) el.value = current;
+}
+
 function checkStoreIdDup(id){
   const res = document.getElementById("ms_idCheck");
-  if(!id){ res.innerHTML=""; return; }
-  const existing = STORES.find(s=>s.id===id);
+  if(!id){ res.innerHTML=""; return false; }
+  const existing = STORES.find(s=>String(s.id)===String(id));
   if(existing){
     res.innerHTML = `<span style="color:var(--red)">⛔ Store ID already exists (${existing.name})</span>`;
+    return true;
   } else {
     res.innerHTML = `<span style="color:var(--green)">✅ Store ID available</span>`;
+    return false;
   }
 }
 
@@ -2885,7 +2951,15 @@ async function saveStore(){
   const partner = document.getElementById("ms_partner").value;
   const address = document.getElementById("ms_address").value.trim();
   if(!id||!name||!partner||!address){ toast("All fields required","err"); return; }
-  if(!editingStoreId && checkStoreIdDup(id)){ toast("Store ID already exists","err"); return; }
+  // ID duplicate (only when creating new)
+  if(!editingStoreId && STORES.some(s=>String(s.id)===String(id))){
+    toast("Store ID already exists","err"); return;
+  }
+  // Name duplicate (exclude self when editing)
+  const nameLower = name.toLowerCase();
+  if(STORES.some(s=>(s.name||"").trim().toLowerCase()===nameLower && String(s.id)!==String(editingStoreId))){
+    toast("Store name already exists","err"); return;
+  }
   try {
     const data = { id, name, partner, address };
     if (editingStoreId) {
@@ -2908,6 +2982,91 @@ async function deleteStore(sid){
     await refreshEntity("stores");
     renderStores();
     toast("Store deleted","ok");
+  } catch(e){}
+}
+
+// ═══ PARTNERS MANAGEMENT ═══
+let editingPartnerId = null;
+
+function renderPartners(){
+  const tbody = document.getElementById("partnerListBody");
+  if(!tbody) return;
+  const list = DB.partners || [];
+  tbody.innerHTML = list.map(p=>{
+    const usage = (DB.stores||[]).filter(s=>s.partner===p.name).length;
+    return `<tr>
+      <td><div style="font-weight:600;font-size:13px">${p.name}</div></td>
+      <td><code style="font-family:monospace;font-size:11px;color:var(--ink3)">${p.color||"—"}</code></td>
+      <td><span style="font-size:10px;font-weight:700;background:${p.color||"#666"};color:#fff;padding:3px 12px;border-radius:20px">📡 ${p.name}</span></td>
+      <td style="font-size:11px;color:var(--ink3)">${usage} store${usage===1?"":"s"}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-s btn-sm" onclick="openEditPartner('${p.id}')">✏️</button>
+        <button class="btn btn-d btn-sm" onclick="deletePartner('${p.id}')">🗑</button>
+      </td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="5" style="text-align:center;color:var(--ink3);padding:24px">No partners yet — create your first partner</td></tr>`;
+}
+
+function openCreatePartner(){
+  editingPartnerId = null;
+  document.getElementById("mPartnerTitle").textContent = "New Partner";
+  document.getElementById("mpt_name").value = "";
+  document.getElementById("mpt_name").readOnly = false;
+  document.getElementById("mpt_color").value = "#0066cc";
+  document.getElementById("mpt_colorText").value = "#0066cc";
+  openModal("mPartner");
+}
+
+function openEditPartner(pid){
+  const p = (DB.partners||[]).find(x=>String(x.id)===String(pid)); if(!p) return;
+  editingPartnerId = p.id;
+  document.getElementById("mPartnerTitle").textContent = "Edit Partner — " + p.name;
+  document.getElementById("mpt_name").value = p.name;
+  // Lock name when in use (changing name would orphan stores)
+  const inUse = (DB.stores||[]).some(s=>s.partner===p.name);
+  document.getElementById("mpt_name").readOnly = inUse;
+  document.getElementById("mpt_color").value = p.color || "#0066cc";
+  document.getElementById("mpt_colorText").value = p.color || "#0066cc";
+  openModal("mPartner");
+}
+
+async function savePartner(){
+  const name = document.getElementById("mpt_name").value.trim();
+  const color = document.getElementById("mpt_colorText").value.trim() || document.getElementById("mpt_color").value;
+  if(!name){ toast("Partner name is required","err"); return; }
+  // Duplicate check (exclude self when editing)
+  const nameLower = name.toLowerCase();
+  if((DB.partners||[]).some(p=>(p.name||"").trim().toLowerCase()===nameLower && String(p.id)!==String(editingPartnerId))){
+    toast("Partner name already exists","err"); return;
+  }
+  try {
+    const data = { name, color };
+    if(editingPartnerId){
+      await api("update", { entity: "partners", id: editingPartnerId, data });
+      toast("Partner updated ✓","ok");
+    } else {
+      await api("create", { entity: "partners", data });
+      toast("Partner created ✓","ok");
+    }
+    await refreshEntity("partners");
+    closeModal("mPartner");
+    renderPartners();
+  } catch(e){}
+}
+
+async function deletePartner(pid){
+  const p = (DB.partners||[]).find(x=>String(x.id)===String(pid)); if(!p) return;
+  const inUse = (DB.stores||[]).filter(s=>s.partner===p.name).length;
+  if(inUse){
+    toast(`Cannot delete: ${inUse} store(s) still use this partner`,"err");
+    return;
+  }
+  if(!confirm(`Delete partner "${p.name}"?`)) return;
+  try {
+    await api("delete", { entity: "partners", id: pid });
+    await refreshEntity("partners");
+    renderPartners();
+    toast("Partner deleted","ok");
   } catch(e){}
 }
 
