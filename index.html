@@ -1394,13 +1394,20 @@ async function onAiFiles(files){
   if(!imgs.length) return;
   const st = document.getElementById("aiStatus");
   st.style.display="block";
-  const beforeCount = (document.querySelectorAll("#cfgProdBody tr")||[]).length;
+  // Strip any existing accessory summary before scanning so totals re-compute fresh
+  document.querySelectorAll("#cfgProductRows tr").forEach(tr => {
+    const sel = tr.querySelector("select");
+    if(sel && sel.value === "Accessory") tr.remove();
+  });
+  const beforeCount = document.querySelectorAll("#cfgProductRows tr").length;
   for(let i=0;i<imgs.length;i++){
     st.innerHTML = `<div style="padding:8px 12px;background:var(--amber-l);border-radius:var(--r);font-size:12px;color:var(--amber)">⏳ Scanning image ${i+1} of ${imgs.length}...</div>`;
     await aiScanOne(imgs[i]);
   }
-  const afterCount = (document.querySelectorAll("#cfgProdBody tr")||[]).length;
+  const afterCount = document.querySelectorAll("#cfgProductRows tr").length;
   const added = Math.max(0, afterCount - beforeCount);
+  // Rebuild the accessory summary based on all current demo rows
+  refreshAccessorySummary();
   st.innerHTML = `<div style="padding:8px 12px;background:var(--green-l);border-radius:var(--r);font-size:12px;color:var(--green)">✅ Scan complete — added ${added} product${added===1?"":"s"} (you can upload more images to add to the same list)</div>`;
   // Reset the input so the same filename can be uploaded again to append more
   const inp = document.getElementById("aiFileInput");
@@ -1456,16 +1463,18 @@ SIGN ITEM RULES:
 - Sign items have qty default 1.
 
 ACCESSORY RULES (very strict):
-- Use ONLY these exact accessory names — do not invent variations:
-  - "Magic Keyboard"
-  - "Magic Keyboard Folio"
+- Use these exact accessory names (with color in parentheses ONLY for Magic Keyboard):
+  - "Magic Keyboard (white)"  — when description says white Magic Keyboard
+  - "Magic Keyboard (black)"  — when description says black Magic Keyboard
+  - "Magic Keyboard"           — only if color is genuinely not specified
+  - "Magic Keyboard Folio"     — never includes a color suffix
   - "Apple Pencil Pro"
   - "Apple Pencil (USB-C)"
   - "Apple Pencil"
 - Do NOT confuse "Magic Keyboard" with "Magic Keyboard Folio" — they are different products.
 - Do NOT classify "Apple Pencil Pro" as "Apple Pencil" — they are different.
 - Do NOT classify "Apple Pencil (USB-C)" as "Apple Pencil" — they are different.
-- If accessory text says "Magic Keyboard Folio", use exactly "Magic Keyboard Folio".
+- When a description like "with Magic Keyboard for iPad Air 11-inch M4 white and Apple Pencil Pro" appears, the "white" refers to the Magic Keyboard color, so output accessoryKb as "Magic Keyboard (white)".
 - When you see "with Magic Keyboard ... and Apple Pencil Pro" — set BOTH accessoryKb AND accessoryPencil for that device.
 
 OUTPUT FORMAT:
@@ -1480,8 +1489,8 @@ Return a JSON array. Each element is one product with these exact fields:
 
 Example output:
 [
-  {"product":"iPad Air 11-inch M4","color":"purple","code":"D88","qty":1,"type":"Demo","accessoryKb":"Magic Keyboard","accessoryPencil":"Apple Pencil Pro"},
-  {"product":"iPad Air 11-inch M4","color":"space gray","code":"D90","qty":1,"type":"Demo","accessoryKb":"Magic Keyboard","accessoryPencil":"Apple Pencil Pro"},
+  {"product":"iPad Air 11-inch M4","color":"purple","code":"D88","qty":1,"type":"Demo","accessoryKb":"Magic Keyboard (white)","accessoryPencil":"Apple Pencil Pro"},
+  {"product":"iPad Air 11-inch M4","color":"space gray","code":"D90","qty":1,"type":"Demo","accessoryKb":"Magic Keyboard (black)","accessoryPencil":"Apple Pencil Pro"},
   {"product":"iPad mini A17 Pro","color":"purple","code":"D68","qty":1,"type":"Demo","accessoryKb":"","accessoryPencil":"Apple Pencil Pro"},
   {"product":"iPad A16","color":"yellow","code":"D82","qty":1,"type":"Demo","accessoryKb":"Magic Keyboard Folio","accessoryPencil":"Apple Pencil (USB-C)"},
   {"product":"iPhone 17 Pro Max","color":"cosmic orange","code":"C306","qty":1,"type":"Demo","accessoryKb":"","accessoryPencil":""},
@@ -1519,24 +1528,127 @@ Return ONLY the JSON array, no markdown, no explanation.`;
 
 // ═══ CONFIG: Product Rows ═══
 function addCfgProductRow(p={}){
-  cfgProductCount++;
-  const i = cfgProductCount;
-  const typeOpts = ["Demo","Display","Sign"].map(t=>`<option${(p.type||"Demo")===t?" selected":""}>${t}</option>`).join("");
+  const typeOpts = ["Demo","Display","Sign","Accessory"].map(t=>`<option${(p.type||"Demo")===t?" selected":""}>${t}</option>`).join("");
   const tbody = document.getElementById("cfgProductRows");
   const tr = document.createElement("tr");
-  tr.id = "cfgrow_"+i;
+  const isAccessory = (p.type === "Accessory");
+  // Accessory summary rows are visually distinct (no accessory columns of their own)
+  const bgStyle = isAccessory ? ' style="background:var(--amber-l)"' : '';
   tr.innerHTML = `
-    <td style="font-size:10px;color:var(--ink3)">${i}</td>
-    <td><input class="fi" placeholder="Product name *" value="${p.product||''}" style="font-size:11px;padding:4px 8px"></td>
-    <td><input class="fi" placeholder="Color/Size" value="${p.color||''}" style="font-size:11px;padding:4px 8px"></td>
-    <td><input class="fi" placeholder="Code" value="${p.code||''}" style="font-size:11px;padding:4px 8px"></td>
-    <td><select class="fi" style="font-size:11px;padding:4px 6px">${typeOpts}</select></td>
-    <td><input class="fi" type="number" min="1" value="${p.qty||1}" style="font-size:11px;padding:4px 6px;width:55px;text-align:center"></td>
-    <td><input class="fi" placeholder="" value="${p.accessoryKb||''}" style="font-size:11px;padding:4px 8px"></td>
-    <td><input class="fi" placeholder="" value="${p.accessoryPencil||''}" style="font-size:11px;padding:4px 8px"></td>
-    <td><button onclick="document.getElementById('cfgrow_${i}').remove()"
+    <td class="rowNum" style="font-size:10px;color:var(--ink3)"${bgStyle}></td>
+    <td${bgStyle}><input class="fi" placeholder="" value="${(p.product||'').replace(/"/g,'&quot;')}" style="font-size:11px;padding:4px 8px${isAccessory?';font-weight:600':''}"></td>
+    <td${bgStyle}><input class="fi" placeholder="" value="${(p.color||'').replace(/"/g,'&quot;')}" style="font-size:11px;padding:4px 8px"></td>
+    <td${bgStyle}><input class="fi" placeholder="" value="${(p.code||'').replace(/"/g,'&quot;')}" style="font-size:11px;padding:4px 8px"></td>
+    <td${bgStyle}><select class="fi" style="font-size:11px;padding:4px 6px">${typeOpts}</select></td>
+    <td${bgStyle}><input class="fi" type="number" min="1" value="${p.qty||1}" style="font-size:11px;padding:4px 6px;width:55px;text-align:center"></td>
+    <td${bgStyle}><input class="fi" placeholder="" value="${(p.accessoryKb||'').replace(/"/g,'&quot;')}" style="font-size:11px;padding:4px 8px"></td>
+    <td${bgStyle}><input class="fi" placeholder="" value="${(p.accessoryPencil||'').replace(/"/g,'&quot;')}" style="font-size:11px;padding:4px 8px"></td>
+    <td${bgStyle}><button onclick="removeCfgRow(this)"
       style="width:26px;height:26px;border:1px solid #fca5a5;background:var(--red-l);color:var(--red);border-radius:5px;font-size:11px">✕</button></td>`;
   tbody.appendChild(tr);
+  renumberCfgRows();
+}
+
+function removeCfgRow(btn){
+  const tr = btn.closest("tr");
+  if(tr) tr.remove();
+  renumberCfgRows();
+  // Recompute accessory summary after a row is deleted
+  refreshAccessorySummary();
+}
+
+function renumberCfgRows(){
+  document.querySelectorAll("#cfgProductRows tr").forEach((tr, idx) => {
+    const numCell = tr.querySelector(".rowNum");
+    if(numCell) numCell.textContent = idx + 1;
+  });
+}
+
+// Build/refresh the accessory summary rows at the bottom of the product list.
+// Removes any existing rows with type=Accessory first, then re-adds based on demo rows.
+function refreshAccessorySummary(){
+  const tbody = document.getElementById("cfgProductRows");
+  if(!tbody) return;
+
+  // Read all rows, separate demo/display/sign rows from accessory summary rows
+  const allTrs = Array.from(tbody.querySelectorAll("tr"));
+  const dataRows = [];
+  allTrs.forEach(tr => {
+    const ins = tr.querySelectorAll("input");
+    const sel = tr.querySelector("select");
+    const type = sel?.value || "Demo";
+    if(type === "Accessory") {
+      tr.remove(); // strip existing summary rows
+      return;
+    }
+    if(!ins[0]?.value.trim()) return;
+    dataRows.push({
+      product: ins[0].value.trim(),
+      color:   ins[1].value.trim(),
+      code:    ins[2].value.trim(),
+      type:    type,
+      qty:     parseInt(ins[3].value)||1,
+      accessoryKb:     ins[4].value.trim(),
+      accessoryPencil: ins[5].value.trim(),
+    });
+  });
+
+  // Tally accessories from demo/display rows
+  const tally = {};  // key: "Name|color" -> { name, color, qty, kind }
+  dataRows.forEach(r => {
+    if(r.accessoryKb){
+      // parse "Magic Keyboard (white)" → name="Magic Keyboard", color="white"
+      const m = r.accessoryKb.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
+      const name = m ? m[1].trim() : r.accessoryKb;
+      const color = m ? m[2].trim() : "";
+      const key = name + "|" + color;
+      if(!tally[key]) tally[key] = { name, color, qty: 0, kind: "kb" };
+      tally[key].qty += r.qty || 1;
+    }
+    if(r.accessoryPencil){
+      const key = r.accessoryPencil + "|";
+      if(!tally[key]) tally[key] = { name: r.accessoryPencil, color: "", qty: 0, kind: "pencil" };
+      tally[key].qty += r.qty || 1;
+    }
+  });
+
+  // Sort: keyboards first (folio, then magic by color), then pencils
+  const entries = Object.values(tally);
+  const kbOrder = (e) => {
+    if(e.name === "Magic Keyboard Folio") return 0;
+    if(e.name === "Magic Keyboard") return 1;
+    return 2;
+  };
+  const pencilOrder = (e) => {
+    if(e.name === "Apple Pencil Pro") return 0;
+    if(e.name === "Apple Pencil (USB-C)") return 1;
+    if(e.name === "Apple Pencil") return 2;
+    return 3;
+  };
+  entries.sort((a,b) => {
+    if(a.kind !== b.kind) return a.kind === "kb" ? -1 : 1;
+    if(a.kind === "kb") {
+      const o = kbOrder(a) - kbOrder(b);
+      if(o !== 0) return o;
+      return (a.color||"").localeCompare(b.color||"");
+    }
+    return pencilOrder(a) - pencilOrder(b);
+  });
+
+  // Append summary rows
+  entries.forEach(e => {
+    addCfgProductRow({
+      product: e.name,
+      color:   e.color,
+      code:    "",
+      type:    "Accessory",
+      qty:     e.qty,
+      accessoryKb: "",
+      accessoryPencil: "",
+    });
+  });
+
+  renumberCfgRows();
 }
 
 function getCfgProductRows(){
