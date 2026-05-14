@@ -301,10 +301,11 @@ select.fi{-webkit-appearance:none;background:var(--surf)}
   font-size:11px;font-weight:700;background:#0f172a;color:#fff;border:none;white-space:nowrap;transition:.18s}
 .btn-pdf:hover{background:var(--blue)}
 
-/* PDF */
+/* PDF — locked to A4 exact: 794×1123px at 96dpi (= 210×297mm) */
 .pdf-page{width:794px;height:1123px;padding:22px 28px;background:#fff;
   position:relative;font-family:'Inter',sans-serif;font-size:12px;color:#1a1d23;
-  box-shadow:0 0 0 1px var(--border);margin:0 auto 18px;overflow:hidden}
+  box-shadow:0 0 0 1px var(--border);margin:0 auto 18px;overflow:hidden;
+  box-sizing:border-box}
 /* Header pinned to top region */
 .pdf-page .pdf-header{position:relative}
 /* Content fills the middle, anchored between header and footer */
@@ -312,12 +313,18 @@ select.fi{-webkit-appearance:none;background:var(--surf)}
 /* Signature pinned to bottom region — fixed position so layout doesn't shift
    regardless of how much content is above it */
 .pdf-page .pdf-footer{position:absolute;left:28px;right:28px;bottom:22px}
+@page{size:A4;margin:0}
 @media print{
   body > *:not(#mPdf){display:none !important}
   #mPdf{position:fixed;inset:0;z-index:9999;background:#fff}
-  #mPdf .modal{box-shadow:none;max-width:none;border-radius:0;max-height:none}
+  #mPdf .modal{box-shadow:none;max-width:none;border-radius:0;max-height:none;padding:0}
   #mPdfActions{display:none !important}
-  .pdf-page{box-shadow:none;margin:0 auto;page-break-after:always}
+  .pdf-page{box-shadow:none;margin:0 auto;page-break-after:always;break-after:page}
+  .pdf-page:last-child{page-break-after:auto;break-after:auto}
+  /* Prevent splitting key blocks across pages */
+  .pdf-page .pdf-footer{page-break-inside:avoid;break-inside:avoid}
+  .pdf-page .pdf-header{page-break-inside:avoid;break-inside:avoid}
+  tr{page-break-inside:avoid;break-inside:avoid}
 }
 
 @media(max-width:700px){
@@ -2847,13 +2854,25 @@ async function finalSubmit(){
     const html = buildPdfHtml(job);
     const container = document.createElement("div");
     container.innerHTML = html;
+    // Render container at exact A4 width so html2canvas captures the page correctly
+    container.style.width = "794px";
+    container.style.background = "#fff";
     document.body.appendChild(container);
     const blob = await html2pdf().from(container).set({
-      margin: 5,
+      // pdf-page already provides its own padding (22px × 28px), so no extra margin
+      margin: 0,
       filename: pdfFilename,
       image: { type: "jpeg", quality: 0.95 },
-      html2canvas: { scale: 2, useCORS: true },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        windowWidth: 794,    // pin window width to A4 so layout matches preview exactly
+        scrollX: 0,
+        scrollY: 0,
+      },
       jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      // One pdf-page = one PDF page; never split a page in the middle
+      pagebreak: { mode: ["css", "legacy"], before: ".pdf-page", avoid: ".pdf-page" },
     }).outputPdf("blob");
     document.body.removeChild(container);
     pdfBase64 = await blobToBase64(blob);
@@ -3328,11 +3347,11 @@ function buildPdfHtml(job){
   };
 
   const renderHeader = () => `
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;padding-right:4px">
       <div>
         <h2 style="font-size:17px;font-weight:700;color:#1a1d23;margin:0">Completion Handover Form</h2>
       </div>
-      <img src="${RTC_LOGO}" style="height:28px;margin-right:6px" alt="RTC">
+      <img src="${RTC_LOGO}" style="height:26px;display:block" alt="RTC">
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 24px;margin-bottom:14px;font-size:11px">
       <div><strong>Partner:</strong> ${job.partner||"—"}</div>
@@ -3423,16 +3442,16 @@ function buildPdfHtml(job){
       <table style="width:100%;border-collapse:collapse;font-size:9px;table-layout:fixed">
         <colgroup>
           <col style="width:3%">
-          <col style="width:15%">
-          <col style="width:10%">
+          <col style="width:18%">
+          <col style="width:14%">
           <col style="width:7%">
           <col style="width:6%">
           <col style="width:4%">
-          <col style="width:12%">
-          <col style="width:12%">
-          <col style="width:9%">
-          <col style="width:9%">
-          <col style="width:13%">
+          <col style="width:11%">
+          <col style="width:11%">
+          <col style="width:8%">
+          <col style="width:8%">
+          <col style="width:10%">
         </colgroup>
         <thead>
           <tr style="background:#f8f9fb">
