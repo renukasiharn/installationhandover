@@ -340,12 +340,12 @@ select.fi{-webkit-appearance:none;background:var(--surf)}
     <div class="login-err" id="loginErr"></div>
     <div class="fgrp">
       <label>Email</label>
-      <input class="fi" id="lEmail" type="email" placeholder="your@email.com" value="admin@co.com">
+      <input class="fi" id="lEmail" type="email" placeholder="your@email.com">
     </div>
     <div class="fgrp">
       <label>Password</label>
       <div style="position:relative">
-        <input class="fi" id="lPass" type="password" placeholder="••••••••" value="Admin1234" style="padding-right:42px">
+        <input class="fi" id="lPass" type="password" placeholder="••••••••" style="padding-right:42px">
         <button type="button" onclick="togglePw('lPass',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:0;cursor:pointer;font-size:16px;padding:4px 8px;color:var(--ink3)" title="Show password">👁️</button>
       </div>
     </div>
@@ -354,12 +354,6 @@ select.fi{-webkit-appearance:none;background:var(--surf)}
     </button>
     <div style="text-align:center;margin-top:14px">
       <a href="#" onclick="openForgotPw();return false" style="color:var(--blue);font-size:13px;text-decoration:none">Forgot password?</a>
-    </div>
-    <div class="demo-box">
-      <strong>Demo Accounts:</strong><br>
-      👑 Admin: <strong>admin@co.com</strong> / Admin1234<br>
-      🔧 Installer: <strong>thanapol@co.com</strong> / Inst1234<br>
-      👤 User: <strong>renuka.ar19@gmail.com</strong> / User1234
     </div>
   </div>
 </div>
@@ -554,7 +548,7 @@ select.fi{-webkit-appearance:none;background:var(--surf)}
               <input type="file" id="aiFileInput" accept="image/*" multiple onchange="onAiFiles(this.files)" style="display:none">
               <div style="font-size:24px;margin-bottom:5px">📸</div>
               <div style="font-size:12px">Upload demo/display product images</div>
-              <div style="font-size:10px;color:var(--ink3);margin-top:3px">AI extracts name / code / keyboard / pencil</div>
+              <div style="font-size:10px;color:var(--ink3);margin-top:3px">AI extracts name / code / keyboard / pencil — upload multiple times to append</div>
             </div>
             <div id="aiStatus" style="display:none;margin-top:8px"></div>
           </div>
@@ -656,7 +650,7 @@ select.fi{-webkit-appearance:none;background:var(--surf)}
             <div class="g2">
               <div class="fg"><label>Name</label><input class="fi" id="prof_name"></div>
               <div class="fg"><label>Position</label><input class="fi" id="prof_position"></div>
-              <div class="fg"><label>Email</label><input class="fi" id="prof_email" type="email"></div>
+              <div class="fg"><label>Email <span style="color:var(--ink3);font-weight:400;font-size:11px">(read-only)</span></label><input class="fi" id="prof_email" type="email" readonly style="background:var(--surf2);color:var(--ink3);cursor:not-allowed"></div>
               <div class="fg"><label>Phone</label><input class="fi" id="prof_phone"></div>
             </div>
             <button class="btn btn-g" onclick="saveProfile()">💾 Save Profile</button>
@@ -821,7 +815,7 @@ select.fi{-webkit-appearance:none;background:var(--surf)}
           <input class="fi" id="mu_email" type="email" placeholder="email@company.com" oninput="checkEmailDup(this.value)">
           <div id="mu_emailCheck" style="font-size:11px;margin-top:3px"></div>
         </div>
-        <div class="fg"><label>Phone</label><input class="fi" id="mu_phone" placeholder="000-000-0000"></div>
+        <div class="fg"><label>Phone <span class="req">*</span></label><input class="fi" id="mu_phone" placeholder="000-000-0000"></div>
         <div class="fg">
           <label>Role <span class="req">*</span></label>
           <select class="fi" id="mu_role">
@@ -1400,9 +1394,17 @@ async function onAiFiles(files){
   if(!imgs.length) return;
   const st = document.getElementById("aiStatus");
   st.style.display="block";
-  st.innerHTML = `<div style="padding:8px 12px;background:var(--amber-l);border-radius:var(--r);font-size:12px;color:var(--amber)">⏳ Scanning ${imgs.length} image(s)...</div>`;
-  for(const f of imgs) await aiScanOne(f);
-  st.innerHTML = `<div style="padding:8px 12px;background:var(--green-l);border-radius:var(--r);font-size:12px;color:var(--green)">✅ Scan complete</div>`;
+  const beforeCount = (document.querySelectorAll("#cfgProdBody tr")||[]).length;
+  for(let i=0;i<imgs.length;i++){
+    st.innerHTML = `<div style="padding:8px 12px;background:var(--amber-l);border-radius:var(--r);font-size:12px;color:var(--amber)">⏳ Scanning image ${i+1} of ${imgs.length}...</div>`;
+    await aiScanOne(imgs[i]);
+  }
+  const afterCount = (document.querySelectorAll("#cfgProdBody tr")||[]).length;
+  const added = Math.max(0, afterCount - beforeCount);
+  st.innerHTML = `<div style="padding:8px 12px;background:var(--green-l);border-radius:var(--r);font-size:12px;color:var(--green)">✅ Scan complete — added ${added} product${added===1?"":"s"} (you can upload more images to add to the same list)</div>`;
+  // Reset the input so the same filename can be uploaded again to append more
+  const inp = document.getElementById("aiFileInput");
+  if(inp) inp.value = "";
 }
 async function aiScanOne(file){
   const b64 = await toBase64(file);
@@ -1423,6 +1425,19 @@ Extract ALL devices shown in the layout (Demo, Display, and Sign items).
 
 Return ONLY valid JSON.
 
+CRITICAL — DO NOT SKIP iPad PAGES:
+- iPad pages list each iPad as a MULTI-LINE BLOCK of text, for example:
+    "iPad Air
+     11-inch M4
+     purple (D88)
+     with Magic Keyboard
+     for iPad Air 11-inch M4
+     white
+     and Apple Pencil Pro"
+  Each such block is ONE product. Combine the model lines into one product name (e.g. "iPad Air 11-inch M4") and extract accessories from the "with ..." and "and ..." lines.
+- A SINGLE iPad page often contains 5–8 different iPad variants — extract every block, do not stop after the first one.
+- iPhone pages are simpler — usually one line per phone with code in parentheses like "iPhone 17 Pro Max — cosmic orange (C306)".
+
 GENERAL RULES:
 - Extract every product visible in the image. Do not skip any.
 - Extract product name, color, code (inside parentheses like (D88), (C306), (GB69)), qty, type, and accessories.
@@ -1430,8 +1445,8 @@ GENERAL RULES:
 - Preserve product names exactly as shown (e.g. "iPad Air 11-inch M4", not "iPad Air").
 
 TYPE CLASSIFICATION:
-- "Demo" — touch-and-try devices (iPad, iPhone, etc. that customers interact with)
-- "Display" — display-only units like Apple Watch on stands, AirPods Display. If the product name contains "Display", classify as "Display".
+- "Demo" — touch-and-try devices (iPad, iPhone, MacBook, etc. that customers interact with)
+- "Display" — display-only units. If the product name contains "Display" (e.g. "AirPods Display 6", "Watch Display"), classify as "Display".
 - "Sign" — digital signs, comparison signs, info cards. If the product name or label contains "Sign", classify as "Sign".
 
 SIGN ITEM RULES:
@@ -1451,6 +1466,7 @@ ACCESSORY RULES (very strict):
 - Do NOT classify "Apple Pencil Pro" as "Apple Pencil" — they are different.
 - Do NOT classify "Apple Pencil (USB-C)" as "Apple Pencil" — they are different.
 - If accessory text says "Magic Keyboard Folio", use exactly "Magic Keyboard Folio".
+- When you see "with Magic Keyboard ... and Apple Pencil Pro" — set BOTH accessoryKb AND accessoryPencil for that device.
 
 OUTPUT FORMAT:
 Return a JSON array. Each element is one product with these exact fields:
@@ -1465,9 +1481,13 @@ Return a JSON array. Each element is one product with these exact fields:
 Example output:
 [
   {"product":"iPad Air 11-inch M4","color":"purple","code":"D88","qty":1,"type":"Demo","accessoryKb":"Magic Keyboard","accessoryPencil":"Apple Pencil Pro"},
+  {"product":"iPad Air 11-inch M4","color":"space gray","code":"D90","qty":1,"type":"Demo","accessoryKb":"Magic Keyboard","accessoryPencil":"Apple Pencil Pro"},
+  {"product":"iPad mini A17 Pro","color":"purple","code":"D68","qty":1,"type":"Demo","accessoryKb":"","accessoryPencil":"Apple Pencil Pro"},
+  {"product":"iPad A16","color":"yellow","code":"D82","qty":1,"type":"Demo","accessoryKb":"Magic Keyboard Folio","accessoryPencil":"Apple Pencil (USB-C)"},
   {"product":"iPhone 17 Pro Max","color":"cosmic orange","code":"C306","qty":1,"type":"Demo","accessoryKb":"","accessoryPencil":""},
+  {"product":"HomePod mini","color":"white","code":"H5","qty":1,"type":"Demo","accessoryKb":"","accessoryPencil":""},
   {"product":"Digital Sign","color":"Apple Watch","code":"","qty":1,"type":"Sign","accessoryKb":"","accessoryPencil":""},
-  {"product":"AirPods Display","color":"","code":"E15","qty":1,"type":"Display","accessoryKb":"","accessoryPencil":""}
+  {"product":"AirPods Display 6","color":"","code":"E15","qty":1,"type":"Display","accessoryKb":"","accessoryPencil":""}
 ]
 
 Return ONLY the JSON array, no markdown, no explanation.`;
@@ -1512,8 +1532,8 @@ function addCfgProductRow(p={}){
     <td><input class="fi" placeholder="Code" value="${p.code||''}" style="font-size:11px;padding:4px 8px"></td>
     <td><select class="fi" style="font-size:11px;padding:4px 6px">${typeOpts}</select></td>
     <td><input class="fi" type="number" min="1" value="${p.qty||1}" style="font-size:11px;padding:4px 6px;width:55px;text-align:center"></td>
-    <td><input class="fi" placeholder="Keyboard" value="${p.accessoryKb||''}" style="font-size:11px;padding:4px 8px"></td>
-    <td><input class="fi" placeholder="Apple Pencil" value="${p.accessoryPencil||''}" style="font-size:11px;padding:4px 8px"></td>
+    <td><input class="fi" placeholder="" value="${p.accessoryKb||''}" style="font-size:11px;padding:4px 8px"></td>
+    <td><input class="fi" placeholder="" value="${p.accessoryPencil||''}" style="font-size:11px;padding:4px 8px"></td>
     <td><button onclick="document.getElementById('cfgrow_${i}').remove()"
       style="width:26px;height:26px;border:1px solid #fca5a5;background:var(--red-l);color:var(--red);border-radius:5px;font-size:11px">✕</button></td>`;
   tbody.appendChild(tr);
@@ -1767,6 +1787,7 @@ async function saveUser(){
   const role = document.getElementById("mu_role").value;
   const password = document.getElementById("mu_password").value;
   if(!name||!email){ toast("Name and email are required","err"); return; }
+  if(!phone){ toast("Phone number is required","err"); return; }
   if(!editingUserId && !password){ toast("Password required for new user","err"); return; }
   if(checkEmailDup(email)){ toast("Email already exists","err"); return; }
   try {
@@ -2159,9 +2180,9 @@ function initProfSigPad(){
 }
 
 async function saveProfile(){
-  const name = document.getElementById("pf_name").value.trim();
-  const phone = document.getElementById("pf_phone").value.trim();
-  const position = document.getElementById("pf_position").value.trim();
+  const name = document.getElementById("prof_name").value.trim();
+  const phone = document.getElementById("prof_phone").value.trim();
+  const position = document.getElementById("prof_position").value.trim();
   if(!name){ toast("Name is required","err"); return; }
   try {
     await api("update", { entity: "users", id: CU.id, data: { name, phone, position } });
