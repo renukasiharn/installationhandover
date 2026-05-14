@@ -302,7 +302,7 @@ select.fi{-webkit-appearance:none;background:var(--surf)}
 .btn-pdf:hover{background:var(--blue)}
 
 /* PDF */
-.pdf-page{width:794px;min-height:1123px;padding:44px 52px;background:#fff;
+.pdf-page{width:794px;min-height:1123px;padding:22px 28px 60px;background:#fff;
   position:relative;font-family:'Inter',sans-serif;font-size:12px;color:#1a1d23;
   box-shadow:0 0 0 1px var(--border);margin:0 auto 18px}
 @media print{
@@ -2834,6 +2834,7 @@ async function finalSubmit(){
   job.receiverSig = receiverSig;
 
   // Generate PDF from the existing buildPdfHtml() → html2pdf → base64
+  const pdfFilename = buildHandoverFilename(job);
   let pdfBase64 = "";
   try {
     const html = buildPdfHtml(job);
@@ -2841,8 +2842,8 @@ async function finalSubmit(){
     container.innerHTML = html;
     document.body.appendChild(container);
     const blob = await html2pdf().from(container).set({
-      margin: 10,
-      filename: `Handover_${job.id}.pdf`,
+      margin: 5,
+      filename: pdfFilename,
       image: { type: "jpeg", quality: 0.95 },
       html2canvas: { scale: 2, useCORS: true },
       jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
@@ -2862,6 +2863,7 @@ async function finalSubmit(){
       note: userNote,
       receiverSig,
       pdfBase64,
+      pdfFilename,
     });
     await refreshEntity("jobs");
     refreshDash();
@@ -2906,6 +2908,19 @@ function blobToBase64(blob){
     r.onerror = reject;
     r.readAsDataURL(blob);
   });
+}
+
+// Build the PDF / email filename in the agreed format:
+//   "Handover <Job Type>_<Store ID> <Store Name>_<Date Label> YYYY-MM-DD.pdf"
+// Strips characters that are invalid in filenames on any OS: / \ : * ? " < > |
+function buildHandoverFilename(job){
+  const jt = String(job.jobType || "Installation");
+  let dateLabel = "Installation Date";
+  const lower = jt.toLowerCase();
+  if(lower.indexOf("dispose") >= 0) dateLabel = "Dispose Date";
+  else if(lower.indexOf("dism") >= 0 || lower.indexOf("repack") >= 0) dateLabel = "Dism & Repack Date";
+  const raw = `Handover ${jt}_${job.storeId||""} ${job.store||""}_${dateLabel} ${job.installDate||""}.pdf`;
+  return raw.replace(/[\/\\:*?"<>|]/g, "-").replace(/\s+/g, " ").trim();
 }
 
 // Resize + recompress a signature dataURL so it fits inside a single Google Sheet cell
@@ -3293,6 +3308,18 @@ function buildPdfHtml(job){
   }
   const totalPages = 1 + productPages.length;
 
+  // Localize "Type" cell values to English (admin scanned in EN, but if user opened
+  // the page through Browser Translate the rendered text could be in their language).
+  // We always render English here regardless.
+  const typeEn = (t) => {
+    const x = String(t||"").toLowerCase();
+    if(x === "demo" || x === "สาธิต") return "Demo";
+    if(x === "display" || x === "แสดง") return "Display";
+    if(x === "sign" || x === "เข้าสู่ระบบ") return "Sign";
+    if(x === "accessory" || x === "อุปกรณ์เสริม") return "Accessory";
+    return t || "Demo";
+  };
+
   const renderHeader = () => `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px">
       <div>
@@ -3310,41 +3337,41 @@ function buildPdfHtml(job){
     </div>`;
 
   const renderSigFooter = (pageNum) => {
-    // Fixed-height sig image area (60px) so layout doesn't shift
+    // Fixed-height sig image area (48px) so layout doesn't shift
     const sigImgBox = (sigData) => sigData
-      ? `<div style="height:60px;border-bottom:1.5px solid #1a1d23;margin-bottom:6px;display:flex;align-items:flex-end"><img src="${sigData}" style="max-height:58px;max-width:100%;display:block"></div>`
-      : `<div style="height:60px;border-bottom:1.5px solid #1a1d23;margin-bottom:6px"></div>`;
+      ? `<div style="height:48px;border-bottom:1.5px solid #1a1d23;margin-bottom:4px;display:flex;align-items:flex-end"><img src="${sigData}" style="max-height:46px;max-width:100%;display:block"></div>`
+      : `<div style="height:48px;border-bottom:1.5px solid #1a1d23;margin-bottom:4px"></div>`;
 
     const totalSigCols = Math.max(installers.length, 1) + 1;
     return `
-    <div style="margin-top:18px;page-break-inside:avoid">
-      <div style="display:grid;grid-template-columns:repeat(${totalSigCols}, 1fr);gap:14px;margin-bottom:4px">
-        <div style="grid-column:1 / span ${Math.max(installers.length,1)};font-weight:700;font-size:11px">Installer Signature:</div>
-        <div style="font-weight:700;font-size:11px">Receiver Signature:</div>
+    <div style="margin-top:14px;page-break-inside:avoid">
+      <div style="display:grid;grid-template-columns:repeat(${totalSigCols}, 1fr);gap:10px;margin-bottom:3px">
+        <div style="grid-column:1 / span ${Math.max(installers.length,1)};font-weight:700;font-size:10px">Installer Signature:</div>
+        <div style="font-weight:700;font-size:10px">Receiver Signature:</div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(${totalSigCols}, 1fr);gap:14px;align-items:start">
+      <div style="display:grid;grid-template-columns:repeat(${totalSigCols}, 1fr);gap:10px;align-items:start">
         ${installers.length ? installers.map(ins=>`
           <div>
             ${sigImgBox(ins.savedSig)}
-            <div style="font-size:10px;font-weight:700">${ins.name}</div>
-            <div style="font-size:9px;color:#666">${ins.position||"Installer"}</div>
-            <div style="font-size:9px;color:#666">${formatPhone(ins.phone)||""}</div>
-            <div style="font-size:9px;color:#666">${ins.email||""}</div>
+            <div style="font-size:9px;font-weight:700">${ins.name}</div>
+            <div style="font-size:8px;color:#666">${ins.position||"Installer"}</div>
+            <div style="font-size:8px;color:#666">${formatPhone(ins.phone)||""}</div>
+            <div style="font-size:8px;color:#666;word-break:break-all">${ins.email||""}</div>
           </div>`).join("") : `
           <div>
             ${sigImgBox(null)}
-            <div style="font-size:10px;font-weight:700">____________________</div>
+            <div style="font-size:9px;font-weight:700">____________________</div>
           </div>`}
         <div>
           ${sigImgBox(job.receiverSig)}
-          <div style="font-size:10px;font-weight:700">${u?.name||""}</div>
-          <div style="font-size:9px;color:#666">${u?.position||""}</div>
-          <div style="font-size:9px;color:#666">${formatPhone(u?.phone)||""}</div>
-          <div style="font-size:9px;color:#666">${u?.email||""}</div>
+          <div style="font-size:9px;font-weight:700">${u?.name||""}</div>
+          <div style="font-size:8px;color:#666">${u?.position||""}</div>
+          <div style="font-size:8px;color:#666">${formatPhone(u?.phone)||""}</div>
+          <div style="font-size:8px;color:#666;word-break:break-all">${u?.email||""}</div>
         </div>
       </div>
     </div>
-    <div style="position:absolute;bottom:30px;left:52px;right:52px;display:flex;justify-content:space-between;font-size:9px;color:#999;border-top:1px solid #e5e5e5;padding-top:6px">
+    <div style="position:absolute;bottom:18px;left:28px;right:28px;display:flex;justify-content:space-between;font-size:9px;color:#999;border-top:1px solid #e5e5e5;padding-top:6px">
       <span>Installation Handover System · ${job.id}</span>
       <span>Page ${pageNum}/${totalPages}</span>
     </div>`;
@@ -3352,7 +3379,7 @@ function buildPdfHtml(job){
 
   // PAGE 1: Checklist
   const page1 = `
-    <div class="pdf-page">
+    <div class="pdf-page" translate="no" lang="en">
       ${renderHeader()}
       <div style="margin-bottom:18px">
         ${CHECKLIST.map((q,i)=>{
@@ -3376,42 +3403,55 @@ function buildPdfHtml(job){
   // Demo Product pages
   const demoPages = productPages.map((pageProds, pi)=>{
     const pageNum = pi + 2;
-    return `<div class="pdf-page">
+    return `<div class="pdf-page" translate="no" lang="en">
       ${renderHeader()}
       <div style="margin-bottom:10px">
         <strong style="font-size:11px">Configuration:</strong>
         <div style="font-size:11px;color:#7c3a00;background:#fef3c7;border-left:3px solid #d97706;padding:6px 10px;border-radius:0 4px 4px 0;margin-top:4px;line-height:1.5">${cfg?.name||"—"}</div>
       </div>
       <div style="font-weight:700;font-size:12px;margin-bottom:8px">Demo Products</div>
-      <table style="width:100%;border-collapse:collapse;font-size:10px">
+      <table style="width:100%;border-collapse:collapse;font-size:9px;table-layout:fixed">
+        <colgroup>
+          <col style="width:3%">
+          <col style="width:13%">
+          <col style="width:14%">
+          <col style="width:6%">
+          <col style="width:6%">
+          <col style="width:4%">
+          <col style="width:10%">
+          <col style="width:10%">
+          <col style="width:12%">
+          <col style="width:8%">
+          <col style="width:14%">
+        </colgroup>
         <thead>
           <tr style="background:#f8f9fb">
-            <th style="padding:5px 6px;border:1px solid #e0e0e0;text-align:center;font-size:9px">#</th>
-            <th style="padding:5px 6px;border:1px solid #e0e0e0;text-align:left;font-size:9px">สินค้า</th>
-            <th style="padding:5px 6px;border:1px solid #e0e0e0;text-align:left;font-size:9px">สี/ขนาด</th>
-            <th style="padding:5px 6px;border:1px solid #e0e0e0;text-align:center;font-size:9px">Code</th>
-            <th style="padding:5px 6px;border:1px solid #e0e0e0;text-align:center;font-size:9px">Type</th>
-            <th style="padding:5px 6px;border:1px solid #e0e0e0;text-align:center;font-size:9px">Qty</th>
-            <th style="padding:5px 6px;border:1px solid #e0e0e0;text-align:left;font-size:9px">Keyboard</th>
-            <th style="padding:5px 6px;border:1px solid #e0e0e0;text-align:left;font-size:9px">Apple Pencil</th>
-            <th style="padding:5px 6px;border:1px solid #e0e0e0;text-align:left;font-size:9px;color:#b45309">Replace With</th>
-            <th style="padding:5px 6px;border:1px solid #e0e0e0;text-align:center;font-size:9px;color:#2563eb">Ready Date</th>
-            <th style="padding:5px 6px;border:1px solid #e0e0e0;text-align:left;font-size:9px">Note</th>
+            <th style="padding:4px 4px;border:1px solid #e0e0e0;text-align:center;font-size:8px">#</th>
+            <th style="padding:4px 4px;border:1px solid #e0e0e0;text-align:left;font-size:8px">Product</th>
+            <th style="padding:4px 4px;border:1px solid #e0e0e0;text-align:left;font-size:8px">Color/Size</th>
+            <th style="padding:4px 4px;border:1px solid #e0e0e0;text-align:center;font-size:8px">Code</th>
+            <th style="padding:4px 4px;border:1px solid #e0e0e0;text-align:center;font-size:8px">Type</th>
+            <th style="padding:4px 4px;border:1px solid #e0e0e0;text-align:center;font-size:8px">Qty</th>
+            <th style="padding:4px 4px;border:1px solid #e0e0e0;text-align:left;font-size:8px">Keyboard</th>
+            <th style="padding:4px 4px;border:1px solid #e0e0e0;text-align:left;font-size:8px">Apple Pencil</th>
+            <th style="padding:4px 4px;border:1px solid #e0e0e0;text-align:left;font-size:8px;color:#b45309">Replace With</th>
+            <th style="padding:4px 4px;border:1px solid #e0e0e0;text-align:center;font-size:8px;color:#2563eb">Ready Date</th>
+            <th style="padding:4px 4px;border:1px solid #e0e0e0;text-align:left;font-size:8px">Note</th>
           </tr>
         </thead>
         <tbody>
           ${pageProds.map((p,i)=>`<tr>
-            <td style="padding:5px 6px;border:1px solid #e0e0e0;text-align:center;color:#999">${pi*ROWS_PER_PAGE+i+1}</td>
-            <td style="padding:5px 6px;border:1px solid #e0e0e0;font-weight:600">${p.product}</td>
-            <td style="padding:5px 6px;border:1px solid #e0e0e0;color:#666">${p.color||"—"}</td>
-            <td style="padding:5px 6px;border:1px solid #e0e0e0;text-align:center;font-family:monospace;font-size:9px">${p.code||"—"}</td>
-            <td style="padding:5px 6px;border:1px solid #e0e0e0;text-align:center;font-size:9px">${p.type||"Demo"}</td>
-            <td style="padding:5px 6px;border:1px solid #e0e0e0;text-align:center">${p.qty||1}</td>
-            <td style="padding:5px 6px;border:1px solid #e0e0e0;font-size:9px;color:#666">${p.accessoryKb||"—"}</td>
-            <td style="padding:5px 6px;border:1px solid #e0e0e0;font-size:9px;color:#666">${p.accessoryPencil||"—"}</td>
-            <td style="padding:5px 6px;border:1px solid #e0e0e0;font-size:9px;color:#b45309">${p.replacedBy||"—"}</td>
-            <td style="padding:5px 6px;border:1px solid #e0e0e0;text-align:center;font-size:9px;color:${p.readyDate?"#16a34a":"#999"}">${p.readyDate||"—"}</td>
-            <td style="padding:5px 6px;border:1px solid #e0e0e0;font-size:9px;color:#666">${p.note||""}</td>
+            <td style="padding:4px 4px;border:1px solid #e0e0e0;text-align:center;color:#999;word-break:break-word">${pi*ROWS_PER_PAGE+i+1}</td>
+            <td style="padding:4px 4px;border:1px solid #e0e0e0;font-weight:600;word-break:break-word">${p.product}</td>
+            <td style="padding:4px 4px;border:1px solid #e0e0e0;color:#666;word-break:break-word">${p.color||"—"}</td>
+            <td style="padding:4px 4px;border:1px solid #e0e0e0;text-align:center;font-family:monospace;font-size:8px;word-break:break-word">${p.code||"—"}</td>
+            <td style="padding:4px 4px;border:1px solid #e0e0e0;text-align:center;font-size:8px">${typeEn(p.type)}</td>
+            <td style="padding:4px 4px;border:1px solid #e0e0e0;text-align:center">${p.qty||1}</td>
+            <td style="padding:4px 4px;border:1px solid #e0e0e0;font-size:8px;color:#666;word-break:break-word">${p.accessoryKb||"—"}</td>
+            <td style="padding:4px 4px;border:1px solid #e0e0e0;font-size:8px;color:#666;word-break:break-word">${p.accessoryPencil||"—"}</td>
+            <td style="padding:4px 4px;border:1px solid #e0e0e0;font-size:8px;color:#b45309;word-break:break-word">${p.replacedBy||"—"}</td>
+            <td style="padding:4px 4px;border:1px solid #e0e0e0;text-align:center;font-size:8px;color:${p.readyDate?"#16a34a":"#999"}">${p.readyDate||"—"}</td>
+            <td style="padding:4px 4px;border:1px solid #e0e0e0;font-size:8px;color:#666;word-break:break-word">${p.note||""}</td>
           </tr>`).join("")}
         </tbody>
       </table>
