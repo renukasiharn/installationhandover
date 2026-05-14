@@ -780,7 +780,7 @@ select.fi{-webkit-appearance:none;background:var(--surf)}
         <input class="fi" id="mp_label" placeholder="e.g. Link 1"></div>
       <div class="fg"><label>VDO URL <span class="req">*</span></label>
         <div style="display:flex;gap:7px">
-          <input class="fi" id="mp_url" placeholder="https://youtu.be/..." style="flex:1">
+          <input class="fi" id="mp_url" placeholder="https://youtu.be/... or https://vimeo.com/..." style="flex:1">
           <button class="btn btn-s btn-sm" onclick="previewProgramVdo()">▶ Preview</button>
         </div>
         <div id="mp_preview" style="display:none;margin-top:8px;background:#0f172a;border-radius:var(--r);aspect-ratio:16/9;overflow:hidden">
@@ -1296,10 +1296,17 @@ function markVdoManual(){
 }
 function previewVdo(){
   const url = document.getElementById("cfgVdoUrl")?.value||"";
-  const m = url.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
-  if(!m){ toast("Invalid YouTube URL","err"); return; }
-  document.getElementById("cfgVdoPrev").style.display="block";
-  document.getElementById("cfgVdoFrame").src = `https://www.youtube.com/embed/${m[1]}?rel=0`;
+  const yt = url.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  const vim = url.match(/vimeo\.com\/(\d+)/);
+  if(yt){
+    document.getElementById("cfgVdoPrev").style.display="block";
+    document.getElementById("cfgVdoFrame").src = `https://www.youtube.com/embed/${yt[1]}?rel=0`;
+  } else if(vim){
+    document.getElementById("cfgVdoPrev").style.display="block";
+    document.getElementById("cfgVdoFrame").src = `https://player.vimeo.com/video/${vim[1]}`;
+  } else {
+    toast("Invalid video URL — use YouTube or Vimeo","err");
+  }
 }
 
 function switchCfgTab(tab){
@@ -1452,8 +1459,8 @@ GENERAL RULES:
 - Preserve product names exactly as shown (e.g. "iPad Air 11-inch M4", not "iPad Air").
 
 TYPE CLASSIFICATION:
-- "Demo" — touch-and-try devices (iPad, iPhone, MacBook, etc. that customers interact with)
-- "Display" — display-only units. If the product name contains "Display" (e.g. "AirPods Display 6", "Watch Display"), classify as "Display".
+- "Demo" — touch-and-try devices that customers interact with. This includes ALL Apple Watch models (Apple Watch SE 3, Apple Watch Series 11, Apple Watch Ultra 3, etc.) even when labeled "Touch and Try" or "Display 22" or similar — Apple Watch items are ALWAYS "Demo", never "Display".
+- "Display" — ONLY "AirPods Display" items (e.g. "AirPods Display 6"). No other product should be classified as "Display".
 - "Sign" — digital signs, comparison signs, info cards. If the product name or label contains "Sign", classify as "Sign".
 
 SIGN ITEM RULES:
@@ -2469,10 +2476,15 @@ function buildWP1(){
     </div>`;
 }
 
-function getYoutubeEmbed(url){
-  const m = (url||"").match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
-  return m ? `https://www.youtube.com/embed/${m[1]}?rel=0` : "";
+function getVideoEmbed(url){
+  const yt = (url||"").match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  if(yt) return `https://www.youtube.com/embed/${yt[1]}?rel=0`;
+  const vim = (url||"").match(/vimeo\.com\/(\d+)/);
+  if(vim) return `https://player.vimeo.com/video/${vim[1]}`;
+  return "";
 }
+// Keep old name as alias for backward compat
+function getYoutubeEmbed(url){ return getVideoEmbed(url); }
 
 function buildWP2(){
   document.getElementById("wp2").innerHTML = `
@@ -2950,16 +2962,23 @@ function openEditProgram(pid){
 
 function previewProgramVdo(){
   const url = document.getElementById("mp_url").value;
-  const m = url.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
-  if(!m){ toast("Invalid YouTube URL","err"); return; }
-  document.getElementById("mp_preview").style.display = "block";
-  document.getElementById("mp_iframe").src = `https://www.youtube.com/embed/${m[1]}?rel=0`;
+  const yt = url.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  const vim = url.match(/vimeo\.com\/(\d+)/);
+  if(yt){
+    document.getElementById("mp_preview").style.display = "block";
+    document.getElementById("mp_iframe").src = `https://www.youtube.com/embed/${yt[1]}?rel=0`;
+  } else if(vim){
+    document.getElementById("mp_preview").style.display = "block";
+    document.getElementById("mp_iframe").src = `https://player.vimeo.com/video/${vim[1]}`;
+  } else {
+    toast("Invalid video URL — use YouTube or Vimeo","err");
+  }
 }
 
 async function saveProgram(){
   const name = document.getElementById("mp_name").value.trim();
-  const vdoLabel = document.getElementById("mp_vdoLabel").value.trim();
-  const vdoUrl = document.getElementById("mp_vdoUrl").value.trim();
+  const vdoLabel = document.getElementById("mp_label").value.trim();
+  const vdoUrl = document.getElementById("mp_url").value.trim();
   const keywords = document.getElementById("mp_keywords").value.split(",").map(s=>s.trim()).filter(Boolean);
   if(!name||!keywords.length){ toast("Name and keywords are required","err"); return; }
   try {
