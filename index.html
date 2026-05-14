@@ -131,6 +131,8 @@ select.fi{-webkit-appearance:none;background:var(--surf)}
 .pill.active,.pill.done{background:var(--green-l);color:var(--green)}
 .pill.inactive{background:var(--red-l);color:var(--red)}
 .pill.pending{background:var(--amber-l);color:var(--amber)}
+.pill.role-admin1{background:#fef3c7;color:#92400e;border:1px solid #fbbf24}
+.pill.role-admin2{background:var(--amber-l);color:var(--amber)}
 .pill.role-admin{background:var(--amber-l);color:var(--amber)}
 .pill.role-installer{background:var(--teal-l);color:var(--teal)}
 .pill.role-user{background:var(--blue-l);color:var(--blue)}
@@ -603,7 +605,8 @@ select.fi{-webkit-appearance:none;background:var(--surf)}
           </div>
           <select class="fi" id="userRoleFilter" onchange="renderUsers()" style="width:160px;font-size:12px;padding:8px 10px">
             <option value="">All Roles</option>
-            <option value="admin">Admin</option>
+            <option value="admin1">Super Admin</option>
+            <option value="admin2">Admin</option>
             <option value="installer">Installer</option>
             <option value="user">User (Recipient)</option>
           </select>
@@ -860,7 +863,8 @@ select.fi{-webkit-appearance:none;background:var(--surf)}
           <select class="fi" id="mu_role">
             <option value="user">👤 User (Recipient)</option>
             <option value="installer">🔧 Installer</option>
-            <option value="admin">👑 Admin</option>
+            <option value="admin2">👑 Admin</option>
+            <option value="admin1" id="mu_role_super">⭐ Super Admin</option>
           </select>
         </div>
         <div class="fg full">
@@ -1080,6 +1084,13 @@ async function refreshEntity(entity) {
 
 // ═══ STATE ═══
 let CU = null;
+
+// Permission helper: only Admin 1 (super admin) can delete
+function canDelete(){ return CU?.role === "admin1"; }
+function deleteBtn(onclickAction){
+  if(!canDelete()) return "";
+  return `<button class="btn btn-d btn-sm" onclick="${onclickAction}">🗑</button>`;
+}
 let gemApiKey = "";
 let editingUserId = null;
 let editingJobId = null;
@@ -1125,10 +1136,12 @@ async function doLogin(){
     document.getElementById("tAv").textContent = CU.name.charAt(0).toUpperCase();
     document.getElementById("tName").textContent = CU.name;
     const b = document.getElementById("tBadge");
-    b.textContent = CU.role.toUpperCase();
-    b.className = "t-badge " + CU.role;
-    buildSidebar(CU.role);
-    if(CU.role==="user"){ showPage("pMyJobs"); }
+    const role = (CU.role === "admin") ? "admin1" : CU.role;
+    const roleLabel = {admin1:"SUPER ADMIN",admin2:"ADMIN",installer:"INSTALLER",user:"USER"}[role] || String(role).toUpperCase();
+    b.textContent = roleLabel;
+    b.className = "t-badge " + role;
+    buildSidebar(role);
+    if(role==="user"){ showPage("pMyJobs"); }
     else { showPage("pDash"); }
   } catch (err) {
     showLoginErr("Connection error. Check GAS_URL and try again.");
@@ -1229,7 +1242,7 @@ function showPage(id){
 function refreshDash(){
   const u = DB.users.filter(x=>x.role==="user");
   const ins = DB.users.filter(x=>x.role==="installer");
-  const adm = DB.users.filter(x=>x.role==="admin");
+  const adm = DB.users.filter(x=>x.role==="admin1"||x.role==="admin2"||x.role==="admin");
   const submitted = DB.jobs.filter(j=>j.status==="done");
   const pending = DB.jobs.filter(j=>j.status==="pending");
 
@@ -1802,7 +1815,7 @@ function renderPresets(){
         </div>
         <div style="display:flex;gap:5px">
           <button class="btn btn-s btn-sm" onclick="event.stopPropagation();openEditPreset('${cfg.id}')">✏️ Edit</button>
-          <button class="btn btn-d btn-sm" onclick="event.stopPropagation();deleteConfig('${cfg.id}')">🗑</button>
+          ${deleteBtn(`event.stopPropagation();deleteConfig('${cfg.id}')`)}
         </div>
       </div>
     </div>`;
@@ -1874,22 +1887,29 @@ function renderUsers(){
            String(u.phone||"").toLowerCase().includes(q);
   });
   document.getElementById("userListBody").innerHTML = list.map(u=>{
-    const roleIcon = {admin:"👑",installer:"🔧",user:"👤"}[u.role]||"";
-    const roleLabel = {admin:"Admin",installer:"Installer",user:"User"}[u.role]||u.role;
+    const role = (u.role === "admin") ? "admin1" : u.role; // backward compat
+    const roleIcon  = {admin1:"⭐",admin2:"👑",installer:"🔧",user:"👤"}[role]||"";
+    const roleLabel = {admin1:"Super Admin",admin2:"Admin",installer:"Installer",user:"User"}[role]||role;
+    const roleClass = {admin1:"role-admin1",admin2:"role-admin2",installer:"role-installer",user:"role-user"}[role]||"";
+    // Only Super Admin can toggle status; others see a disabled lock icon
+    const canToggle = CU?.role === "admin1";
+    const toggleBtn = canToggle
+      ? `<button class="btn btn-d btn-sm" onclick="toggleUserStatus('${u.id}')" title="${u.status==='active'?'Deactivate':'Activate'}">${u.status==="active"?"🔒":"🔓"}</button>`
+      : "";
     return `<tr>
       <td><div style="font-weight:600;font-size:12px">${u.name}</div></td>
       <td style="font-size:11px;color:var(--ink3)">${u.email}</td>
       <td style="font-size:11px;color:var(--ink3)">${formatPhone(u.phone)||"—"}</td>
       <td style="font-size:11px;color:var(--ink3)">${u.position||"—"}</td>
-      <td><span class="pill role-${u.role}">${roleIcon} ${roleLabel}</span></td>
-      <td>${u.role==="user" ? `<span style="color:var(--ink3);font-size:10px">N/A</span>` :
+      <td><span class="pill ${roleClass}">${roleIcon} ${roleLabel}</span></td>
+      <td>${role==="user" ? `<span style="color:var(--ink3);font-size:10px">N/A</span>` :
             u.savedSig ? `<span style="color:var(--green);font-size:11px;font-weight:600">✅ Saved</span>` :
             `<span style="color:var(--amber);font-size:11px;font-weight:600">⚠️ Not signed</span>`}</td>
       <td><span class="pill ${u.status}">${u.status==="active"?"Active":"Inactive"}</span></td>
       <td style="white-space:nowrap">
         <button class="btn btn-s btn-sm" onclick="openEditUser('${u.id}')" title="Edit">✏️</button>
         <button class="btn btn-s btn-sm" onclick="resetUserPassword('${u.id}','${(u.name||'').replace(/'/g,'')}')" title="Reset password">🔑</button>
-        <button class="btn btn-d btn-sm" onclick="toggleUserStatus('${u.id}')" title="${u.status==='active'?'Deactivate':'Activate'}">${u.status==="active"?"🔒":"🔓"}</button>
+        ${toggleBtn}
       </td>
     </tr>`;
   }).join("") || `<tr><td colspan="8" style="text-align:center;color:var(--ink3);padding:24px">No users found</td></tr>`;
@@ -1905,12 +1925,15 @@ function openCreateUser(){
   document.getElementById("mu_phone").value = "";
   document.getElementById("mu_password").value = "";
   document.getElementById("mu_role").value = "user";
+  // Hide "Super Admin" option for non-Admin1 users
+  const superOpt = document.getElementById("mu_role_super");
+  if(superOpt) superOpt.style.display = (CU?.role === "admin1") ? "" : "none";
   document.getElementById("mu_emailCheck").innerHTML = "";
   openModal("mUser");
 }
 
 function openEditUser(uid){
-  const u = DB.users.find(x=>x.id===uid); if(!u) return;
+  const u = DB.users.find(x=>String(x.id)===String(uid)); if(!u) return;
   editingUserId = uid;
   document.getElementById("mUserTitle").textContent = "Edit User";
   setTimeout(()=>bindPhoneFormat("mu_phone"), 50);
@@ -1919,7 +1942,11 @@ function openEditUser(uid){
   document.getElementById("mu_email").value = u.email;
   document.getElementById("mu_phone").value = formatPhone(u.phone)||"";
   document.getElementById("mu_password").value = u.password;
-  document.getElementById("mu_role").value = u.role;
+  // Normalize legacy "admin" → "admin1" for the dropdown
+  document.getElementById("mu_role").value = (u.role === "admin") ? "admin1" : u.role;
+  // Hide Super Admin option for non-Admin1 users (so admin2/installer can't elevate)
+  const superOpt = document.getElementById("mu_role_super");
+  if(superOpt) superOpt.style.display = (CU?.role === "admin1") ? "" : "none";
   document.getElementById("mu_emailCheck").innerHTML = "";
   openModal("mUser");
 }
@@ -2090,7 +2117,7 @@ function populateInstallerSelect(){
   const sel = document.getElementById("mj_installerPick");
   if(!sel) return;
   sel.innerHTML = '<option value="">— Select installer —</option>' +
-    DB.users.filter(u=>(u.role==="installer"||u.role==="admin")&&u.status==="active").map(u=>{
+    DB.users.filter(u=>(u.role==="installer"||u.role==="admin1"||u.role==="admin2"||u.role==="admin")&&u.status==="active").map(u=>{
       const sigMark = u.savedSig?" ✅":" ⚠️ no sig";
       return `<option value="${u.id}">${u.name} (${u.position||u.role})${sigMark}</option>`;
     }).join("");
@@ -2881,7 +2908,7 @@ function renderStores(){
       <td style="font-size:11px;color:var(--ink3)">${s.address||"—"}</td>
       <td style="white-space:nowrap">
         <button class="btn btn-s btn-sm" onclick="openEditStore('${s.id}')">✏️</button>
-        <button class="btn btn-d btn-sm" onclick="deleteStore('${s.id}')">🗑</button>
+        ${deleteBtn(`deleteStore('${s.id}')`)}
       </td>
     </tr>`;
   }).join("") || `<tr><td colspan="5" style="text-align:center;color:var(--ink3);padding:24px">${q?"No stores match your search":"No stores yet"}</td></tr>`;
@@ -3001,7 +3028,7 @@ function renderPartners(){
       <td style="font-size:11px;color:var(--ink3)">${usage} store${usage===1?"":"s"}</td>
       <td style="white-space:nowrap">
         <button class="btn btn-s btn-sm" onclick="openEditPartner('${p.id}')">✏️</button>
-        <button class="btn btn-d btn-sm" onclick="deletePartner('${p.id}')">🗑</button>
+        ${deleteBtn(`deletePartner('${p.id}')`)}
       </td>
     </tr>`;
   }).join("") || `<tr><td colspan="5" style="text-align:center;color:var(--ink3);padding:24px">No partners yet — create your first partner</td></tr>`;
@@ -3088,7 +3115,7 @@ function renderPrograms(){
       <td style="font-size:10px;color:var(--ink3);max-width:200px">${(p.keywords||[]).join(", ")}</td>
       <td style="white-space:nowrap">
         <button class="btn btn-s btn-sm" onclick="openEditProgram('${p.id}')">✏️ Edit</button>
-        <button class="btn btn-d btn-sm" onclick="deleteProgram('${p.id}')">🗑</button>
+        ${deleteBtn(`deleteProgram('${p.id}')`)}
       </td>
     </tr>`;
   }).join("") || `<tr><td colspan="6" style="text-align:center;color:var(--ink3);padding:20px">No programs configured</td></tr>`;
